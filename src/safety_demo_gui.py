@@ -1,5 +1,3 @@
-from subprocess import call
-from tabnanny import check
 import tkinter as tk
 import threading
 
@@ -14,25 +12,30 @@ class SafetyDemoGui():
 
     board_connected = False
 
-    board_product_name = 'CP2108 Quad USB to UART Bridge Controller - CP2108 Interface 3'
+    board_product_name = "CP2108 Quad USB to UART Bridge Controller"
 
     def __init__(self):
         self.window = self.create_window()
+
+        self.window.columnconfigure(0, weight=1)
+
         self.connect_button = tk.Button(self.window, text ="Connect", command = self.check_ports)
         self.connect_button.grid(column=0, row=0)
         self.change_connection_status_button = tk.Button(self.window, text ="Change Connection Status", command = self.change_connection_status)
-        # self.change_connection_status_button.grid(column=0, row=1)
+        self.change_connection_status_button.grid(column=0, row=1)
 
         self.serial_status_label = tk.Label(self.window, text = "Serial Status")
+        self.serial_status_label.grid(column=0, row=2,pady=5)
         # Create text widget and specify size.
-        self.serial_status_log = tk.Text(self.window, height = 5, width = 52)
+        self.serial_status_log = tk.Text(self.window, height = 15, width = 100)
+        self.serial_status_log.grid(column=0, row=3)
+        # self.connect_button.pack()
 
-        self.connect_button.pack()
-        self.change_connection_status_button.pack()
+        # self.change_connection_status_button.pack()
 
         self.periodic_add_serial_status()
-        self.serial_status_label.pack()
-        self.serial_status_log.pack()
+        # self.serial_status_label.pack()
+        # self.serial_status_log.pack()
         self.periodic_connection_check_init()
 
         self.window.mainloop()
