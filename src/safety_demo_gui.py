@@ -1,6 +1,10 @@
-import tkinter as tk
+from ast import pattern
+# import tkinter as tk
+import tkinter
 import threading
 import time, os, sys
+import customtkinter as tk
+
 
 # Imports to work with serial port
 import serial
@@ -18,12 +22,12 @@ class SafetyDemoGui():
 
     def __init__(self):
         self.window = self.create_window()
-        self.grid_matrix = [[0,],[0,]] # Matrix to procedurally generate widgets
+        self.grid_matrix = 0 # Matrix to procedurally generate vertical widgets
         self.window.columnconfigure(0, weight=1)
 
         self.connect_button = tk.Button(self.window, text ="Connect", command = self.check_ports)
-        self.connect_button.grid(column=0, row=0, sticky="nsew", padx=10, pady=10)
-        
+        self.connect_button.grid(column=0, row=self.grid_matrix, sticky="nsew", padx=10, pady=10 , columnspan=3)
+        self.grid_matrix += 1
         # self.change_connection_status_button = tk.Button(self.window, text ="Change Connection Status", command = self.change_connection_status)
         # self.change_connection_status_button.grid(column=0, row=1 , padx=10, pady=10, sticky="nsew")
         
@@ -37,8 +41,7 @@ class SafetyDemoGui():
         synopsys_logo_tk = ImageTk.PhotoImage(synopsys_logo_img)
         label1 = tk.Label(image=synopsys_logo_tk)
         label1.image = synopsys_logo_tk
-        self.grid_matrix[0].append(1)
-        label1.grid(column=1, row=0 , pady=10 , padx=10)
+        label1.grid(column=5, row=0 , pady=10 , padx=10)
         
         # Create locks
         self.uart_lock = threading.Lock()
@@ -47,14 +50,33 @@ class SafetyDemoGui():
         # Add blink button
 
         self.blink_button = tk.Button(self.window, text ="Blink", command = self.send_blink_command)
-        self.blink_button.grid(column=0, row=2 , padx=5, pady=5 , sticky="nsew")
+        self.blink_button.grid(column=0, row=self.grid_matrix , padx=5, pady=5 , sticky="nsew")
+        self.grid_matrix += 1
 
+        # Add serial status log
+        # self.serial_status_log = tk.Text(self.window, height=10, width=30)
+
+
+        # Create patterns buttons
+        self.pattern_names = ["Pattern 1", "Pattern 2", "Pattern 3", "Pattern 4", "Pattern 5"]
+        self.patterns = []
+        for i in range(len(self.pattern_names)):
+            self.patterns.append(Pattern_Block ( self.window, self.pattern_names[i], i , self.grid_matrix ))
+        # self.grid_matrix += len(self.patterns)
+        for pattern in self.patterns:
+            self.grid_matrix += pattern.height
+        
+
+
+        # Debug window
         self.serial_status_label = tk.Label(self.window, text = "Serial Status")
-        self.serial_status_label.grid(column=0, row=3, pady=5 , columnspan=2)
+        self.serial_status_label.grid(column=0, row=self.grid_matrix, pady=5 , columnspan=2)
+        self.grid_matrix += 1
         # Create text widget and specify size.
         self.serial_status_log = tk.Text(self.window, height = 15, width = 100)
-        self.serial_status_log.grid(column=0, row=4 , columnspan=2 , pady=2)
+        self.serial_status_log.grid(column=0, row=self.grid_matrix , columnspan=2 , pady=2)
         # self.connect_button.pack()
+        self.grid_matrix += 1
 
         # self.change_connection_status_button.pack()
 
@@ -66,7 +88,8 @@ class SafetyDemoGui():
         self.window.mainloop()
 
     def create_window(self):
-        window = tk.Tk()
+        # window = tk.Tk()
+        window = tk.CTk()
         window.title("Welcome to Safety GUI app")
         return window
 
@@ -149,6 +172,46 @@ class SafetyDemoGui():
                 print(f"Writting to serial port: {data}")
                 serial_port.write(f'{data}\r\n'.encode())
         time.sleep(0.01)
+
+class Pattern_Block:
+    def __init__(self, window, pattern_name, pattern_number , offset = 0):
+        self.height = 1
+        self.colomn_couter = 0
+        self.window = window
+        self.pattern_name = pattern_name
+        self.pattern_number = pattern_number
+
+        self.pattern_status = "Never run"
+        self.pattern_result = "None"
+
+        # self.pattern_label 
+
+        # ADd pattern button
+        self.pattern_button = tk.Button(self.window, text = f"Run {self.pattern_name}", command = self.send_pattern_command)
+        self.pattern_button.grid(column=self.colomn_couter, row= pattern_number + offset , padx=5, pady=5 , sticky="nsew" )
+        self.colomn_couter += 1
+
+        # Add pattern status
+
+        self.pattern_status = tk.Label(self.window, text = self.pattern_status)
+        self.pattern_status.grid(column=self.colomn_couter, row= pattern_number + offset , padx=5, pady=5 , sticky="nsew" )
+        self.colomn_couter += 1
+
+        # Add pattern result
+
+        self.pattern_result = tk.Label(self.window, text = self.pattern_result)
+        if self.pattern_result == "Pass":
+            self.pattern_result.configure(bg="green")
+        elif self.pattern_result == "Fail":
+            self.pattern_result.configure(bg="red")
+        else:
+            self.pattern_result.configure(bg="white")
+        self.pattern_result.grid(column=self.colomn_couter, row= pattern_number + offset , padx=5, pady=5 , sticky="nsew" )
+        self.colomn_couter += 1
+
+    def send_pattern_command(self):
+        print(f"Pattern {self.pattern_number} selected")
+
 
 if __name__ == '__main__':
     safety_gui = SafetyDemoGui()
