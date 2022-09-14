@@ -19,22 +19,35 @@ class SafetyDemoGui():
     board_product_name = "CP2108 Quad USB to UART Bridge Controller"
 
     def __init__(self):
-        self.window = self.create_window()
+        self.root_window = self.create_window()
 
 
-        self.far_right_colomn = 5
+        # Create locks
+        self.uart_lock = threading.Lock()
+        self.uart_log_lock = threading.Lock()
+
+        self.far_right_colomn = 0
         
+        # ============ create two frames ============
 
-        self.grid_matrix = 0 # Matrix to procedurally generate vertical widgets
-        self.window.columnconfigure(0, weight=1)
+        # configure grid layout (2x1)
+        self.root_window.grid_columnconfigure(1, weight=1)
+        self.root_window.grid_rowconfigure(0, weight=1)
 
-        self.connect_button = tk.CTkButton(self.window, text ="Connect", command = self.check_ports)
-        self.connect_button.grid(column=0, row=self.grid_matrix, sticky="nsew", padx=10, pady=10 , columnspan=3)
-        self.grid_matrix += 1
-        # self.change_connection_status_button = tk.CTkButton(self.window, text ="Change Connection Status", command = self.change_connection_status)
-        # self.change_connection_status_button.grid(column=0, row=1 , padx=10, pady=10, sticky="nsew")
-        
-        
+        self.frame_left = tk.CTkFrame(master=self.root_window,
+                                                 width=180,
+                                                 corner_radius=0)
+        self.frame_left.grid(row=0, column=0, sticky="nswe")
+
+        self.window = tk.CTkFrame(master=self.root_window , width=400, corner_radius=0)
+        self.window.grid(row=0, column=1, sticky="nswe", padx=20, pady=20)
+
+
+
+        # ============ create left frame  ============
+
+
+
         # Synopsys logo image
         
         synopsys_logo_img = Image.open("../img/Synopsys_Logo.png") # USE ABSOLUTE PATH TODO
@@ -42,18 +55,42 @@ class SafetyDemoGui():
         logo_width, logo_height = synopsys_logo_img.size
         synopsys_logo_img = synopsys_logo_img.resize((int(logo_width/5), int(logo_height/5)), Image.ANTIALIAS)
         synopsys_logo_tk = ImageTk.PhotoImage(synopsys_logo_img)
-        label1 = tk.CTkLabel(image=synopsys_logo_tk)
+        label1 = tk.CTkLabel(image=synopsys_logo_tk , master=self.frame_left)
         label1.image = synopsys_logo_tk
         label1.grid(column= self.far_right_colomn, row=0 , pady=10 , padx=10 , columnspan=2, rowspan=2, sticky="nsew")
         
-        # Create locks
-        self.uart_lock = threading.Lock()
-        self.uart_log_lock = threading.Lock()
+        # Add logo to the left frame
+        # self.frame_left.grid_columnconfigure(0, weight=1)
+        label_log = tk.CTkLabel(text="Safety Demo log", master=self.frame_left)
+        label_log.grid(column= self.far_right_colomn, row=2 , pady=10 , padx=10 , columnspan=2, sticky="n")
+
+
+        # ============ create frame_right grid ============
+        self.window.columnconfigure((0, 1), weight=1)
+        self.window.columnconfigure(2, weight=0)
+
+
+        self.grid_matrix = 0 # Matrix to procedurally generate vertical widgets
+        # self.window.columnconfigure(0, weight=1)
+
+        self.connect_button = tk.CTkButton(self.window, text ="Connect", command = self.check_ports , height= 40)
+        self.connect_button.grid(column=0, row=self.grid_matrix, sticky="we", padx=10, pady=10 , columnspan=4, rowspan=2)
+        self.grid_matrix += 2
+        # self.change_connection_status_button = tk.CTkButton(self.window, text ="Change Connection Status", command = self.change_connection_status)
+        # self.change_connection_status_button.grid(column=0, row=1 , padx=10, pady=10, sticky="nsew")
+        
+        # Add progress bar
+        self.progress_bar = tk.CTkProgressBar(self.window, width=200, height=20)
+        self.progress_bar.grid(column=2, row=self.grid_matrix, sticky="we", padx=10, pady=10, columnspan=2)
+        
+        self.progress_bar_value = 0
+        self.update_progress_bar_value()
+
         
         # Add blink button
 
         self.blink_button = tk.CTkButton(self.window, text ="Blink", command = self.send_blink_command , height = 50) 
-        self.blink_button.grid(column=0, row=self.grid_matrix , padx=10, pady=10 , sticky="nsew" , columnspan = 4  )
+        self.blink_button.grid(column=0, row=self.grid_matrix , padx=10, pady=10 , sticky="we" , columnspan = 2  )
         self.grid_matrix += 1
 
         # Add serial status log
@@ -134,7 +171,7 @@ class SafetyDemoGui():
 
     def periodic_connection_check_init(self):
         self.check_ports()
-        self.window.after(2000, self.periodic_connection_check_init)
+        self.root_window.after(2000, self.periodic_connection_check_init)
 
     def get_serial_ports(self):
         ports = serial.tools.list_ports.comports()
@@ -165,7 +202,7 @@ class SafetyDemoGui():
         # self.serial_status_log.insert(tk.END,self.get_serial_ports())
         # self.serial_status_log.insert(tk.END, f"Connection status: {self.board_connected}")
         self.serial_status_log.configure(text = f" {self.get_serial_ports()}\nConnection status: {self.board_connected}")
-        self.window.after(2000, self.periodic_add_serial_status)
+        self.root_window.after(2000, self.periodic_add_serial_status)
 
 
 
@@ -185,6 +222,14 @@ class SafetyDemoGui():
                 serial_port.write(f'{data}\r\n'.encode())
         time.sleep(0.01)
 
+
+
+    
+    def update_progress_bar_value(self):
+        value = self.progress_bar_value + 0.3
+        self.progress_bar.set (value=value)
+        self.root_window.after(1000, self.update_progress_bar_value)
+
 class Pattern_Block:
     default_button_height = 30
     pady = 10
@@ -203,14 +248,14 @@ class Pattern_Block:
 
         # ADd pattern button
         self.pattern_button = tk.CTkButton(self.window, text = f"Run {self.pattern_name}", command = self.send_pattern_command , height = self.default_button_height)
-        self.pattern_button.grid(column=self.colomn_couter, row= pattern_number + offset , padx=5, pady= self.pady , sticky="nsew" , columnspan=1 )
+        self.pattern_button.grid(column=self.colomn_couter, row= pattern_number + offset , padx=5, pady= self.pady , sticky="w" , columnspan=1 )
         self.colomn_couter += 1
 
         # Add pattern status
 
         self.pattern_status = tk.CTkLabel(self.window, text = self.pattern_status)
-        self.pattern_status.grid(column=self.colomn_couter, row= pattern_number + offset , padx=5, pady = self.pady  , sticky="nsew" )
-        self.colomn_couter += 1
+        self.pattern_status.grid(column=self.colomn_couter, row= pattern_number + offset , padx=5, pady = self.pady  , sticky="nsew" , columnspan=2 )
+        self.colomn_couter += 2
 
         # Add pattern result
 
@@ -221,11 +266,14 @@ class Pattern_Block:
             self.pattern_result.configure(bg_color="red")
         else:
             self.pattern_result.configure(bg_color="grey")
-        self.pattern_result.grid(column=self.colomn_couter, row= pattern_number + offset , padx=5, pady= self.pady  , sticky="nsew" )
+        self.pattern_result.grid(column=self.colomn_couter, row= pattern_number + offset , padx=5, pady= self.pady  , sticky="e" )
         self.colomn_couter += 1
 
     def send_pattern_command(self):
         print(f"Pattern {self.pattern_number} selected")
+
+
+        
 
 
 if __name__ == '__main__':
