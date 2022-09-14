@@ -12,6 +12,8 @@ from PIL import ImageTk, Image
 
 from apscheduler.schedulers.blocking import BlockingScheduler
 
+tk.set_appearance_mode("dark")
+
 class SafetyDemoGui():
 
     board_connected = False
@@ -79,7 +81,7 @@ class SafetyDemoGui():
         # self.change_connection_status_button = tk.CTkButton(self.window, text ="Change Connection Status", command = self.change_connection_status)
         # self.change_connection_status_button.grid(column=0, row=1 , padx=10, pady=10, sticky="nsew")
         
-        # Add progress bar
+        # Add demo progress bar
         self.progress_bar = tk.CTkProgressBar(self.window, width=200, height=20)
         self.progress_bar.grid(column=2, row=self.grid_matrix, sticky="we", padx=10, pady=10, columnspan=2)
         
@@ -226,8 +228,11 @@ class SafetyDemoGui():
 
     
     def update_progress_bar_value(self):
-        value = self.progress_bar_value + 0.3
-        self.progress_bar.set (value=value)
+        if self.progress_bar_value >= 1:
+            self.progress_bar_value = 0
+        self.progress_bar_value = self.progress_bar_value + 0.05
+        self.progress_bar.set (value=self.progress_bar_value)
+        # print(f"Progress bar value: {self.progress_bar_value}")
         self.root_window.after(1000, self.update_progress_bar_value)
 
 class Pattern_Block:
