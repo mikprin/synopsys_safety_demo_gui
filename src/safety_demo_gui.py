@@ -25,10 +25,10 @@ class SafetyDemoGui():
         self.grid_matrix = 0 # Matrix to procedurally generate vertical widgets
         self.window.columnconfigure(0, weight=1)
 
-        self.connect_button = tk.Button(self.window, text ="Connect", command = self.check_ports)
+        self.connect_button = tk.CTkButton(self.window, text ="Connect", command = self.check_ports)
         self.connect_button.grid(column=0, row=self.grid_matrix, sticky="nsew", padx=10, pady=10 , columnspan=3)
         self.grid_matrix += 1
-        # self.change_connection_status_button = tk.Button(self.window, text ="Change Connection Status", command = self.change_connection_status)
+        # self.change_connection_status_button = tk.CTkButton(self.window, text ="Change Connection Status", command = self.change_connection_status)
         # self.change_connection_status_button.grid(column=0, row=1 , padx=10, pady=10, sticky="nsew")
         
         
@@ -49,7 +49,7 @@ class SafetyDemoGui():
         
         # Add blink button
 
-        self.blink_button = tk.Button(self.window, text ="Blink", command = self.send_blink_command)
+        self.blink_button = tk.CTkButton(self.window, text ="Blink", command = self.send_blink_command)
         self.blink_button.grid(column=0, row=self.grid_matrix , padx=5, pady=5 , sticky="nsew")
         self.grid_matrix += 1
 
@@ -187,7 +187,7 @@ class Pattern_Block:
         # self.pattern_label 
 
         # ADd pattern button
-        self.pattern_button = tk.Button(self.window, text = f"Run {self.pattern_name}", command = self.send_pattern_command)
+        self.pattern_button = tk.CTkButton(self.window, text = f"Run {self.pattern_name}", command = self.send_pattern_command)
         self.pattern_button.grid(column=self.colomn_couter, row= pattern_number + offset , padx=5, pady=5 , sticky="nsew" )
         self.colomn_couter += 1
 
