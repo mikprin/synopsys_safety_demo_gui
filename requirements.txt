@@ -1,3 +1,4 @@
 apscheduler # Sceduler
 tk # GUI
 pyserial # Serial communication
+pillow # Image processing
