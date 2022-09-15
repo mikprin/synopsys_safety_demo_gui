@@ -1,5 +1,5 @@
 apscheduler # Sceduler
 tk # GUI
-customtkinter
+customtkinter # Better gui wrapper
 pyserial # Serial communication
 pillow # Image processing
