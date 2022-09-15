@@ -118,25 +118,29 @@ class SafetyDemoGui():
             self.grid_matrix += pattern.height
         
 
+
+        ######################## Add picture to the window ########################
+
         # Create sqare wave image
-        self.time_value = 0.1
-        img_buf = plot_sqare_wave(self.time_value)
+        # self.time_value = 0.1
+        # img_buf = plot_sqare_wave(self.time_value)
         # Resize image
 
         
-        Y_DIV = 1
-        X_DIV = 1
-        img_buf = img_buf.resize((int(img_buf.size[0]/X_DIV), int(img_buf.size[1]/Y_DIV)), Image.ANTIALIAS)
-        tk_plot = ImageTk.PhotoImage(img_buf)
-        self.label_plot = tk.CTkLabel(image=tk_plot , master=self.window)
-        self.label_plot.image = tk_plot
-        self.label_plot.grid(column=0, row=self.grid_matrix , pady=10 , padx=10 , columnspan=2, sticky="w")
+
+
+        # Y_DIV = 1
+        # X_DIV = 1
+        # img_buf = img_buf.resize((int(img_buf.size[0]/X_DIV), int(img_buf.size[1]/Y_DIV)), Image.ANTIALIAS)
+        # tk_plot = ImageTk.PhotoImage(img_buf)
+        # self.label_plot = tk.CTkLabel(image=tk_plot , master=self.window)
+        # self.label_plot.image = tk_plot
+        # self.label_plot.grid(column=0, row=self.grid_matrix , pady=10 , padx=10 , columnspan=2, sticky="w")
         
-        self.grid_matrix += 1
+        # self.grid_matrix += 1
 
-        self.root_window.after(1000, self.update_picture)
+        # self.root_window.after(1000, self.update_picture)
 
-        # im = Image.open(img_buf)
 
 
         # Debug window
@@ -196,6 +200,7 @@ class SafetyDemoGui():
         # blink with button 
         
     def update_picture(self):
+        del(self.label_plot.image)
         self.time_value += 0.2
         img_buf = plot_sqare_wave(self.time_value)
         Y_DIV = 1
