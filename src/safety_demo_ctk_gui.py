@@ -1,8 +1,9 @@
-from ast import pattern
 import tkinter
+import numpy as np
 import customtkinter as tk
 import threading
-import time, os, sys
+import time, os, sys, io
+import matplotlib.pyplot as plt
 
 # Imports to work with serial port
 import serial
@@ -14,6 +15,7 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 
 tk.set_appearance_mode("dark")
 
+
 class SafetyDemoGui():
 
     board_connected = False
@@ -22,6 +24,13 @@ class SafetyDemoGui():
 
     def __init__(self):
         self.root_window = self.create_window()
+
+        self.root_window.protocol("WM_DELETE_WINDOW", self.on_closing)  # call .on_closing() when app gets closed
+        # Make temp directory if doesn't exist
+
+        tempdir = os.path.join("..","temp") # TODO change to absolute path  
+        if not os.path.exists(tempdir):
+            os.makedirs(tempdir)
 
 
         # Create locks
@@ -109,6 +118,26 @@ class SafetyDemoGui():
             self.grid_matrix += pattern.height
         
 
+        # Create sqare wave image
+        self.time_value = 0.1
+        img_buf = plot_sqare_wave(self.time_value)
+        # Resize image
+
+        
+        Y_DIV = 1
+        X_DIV = 1
+        img_buf = img_buf.resize((int(img_buf.size[0]/X_DIV), int(img_buf.size[1]/Y_DIV)), Image.ANTIALIAS)
+        tk_plot = ImageTk.PhotoImage(img_buf)
+        self.label_plot = tk.CTkLabel(image=tk_plot , master=self.window)
+        self.label_plot.image = tk_plot
+        self.label_plot.grid(column=0, row=self.grid_matrix , pady=10 , padx=10 , columnspan=2, sticky="w")
+        
+        self.grid_matrix += 1
+
+        self.root_window.after(1000, self.update_picture)
+
+        # im = Image.open(img_buf)
+
 
         # Debug window
         # self.serial_status_label = tk.CTkLabel(self.window, text = "Serial Status")
@@ -126,9 +155,18 @@ class SafetyDemoGui():
         # self.periodic_add_serial_status()
         # self.serial_status_label.pack()
         # self.serial_status_log.pack()
-        self.periodic_connection_check_init()
 
-        self.window.mainloop()
+
+
+        self.periodic_connection_check_init() # Init port check
+
+        self.root_window.mainloop()
+
+
+
+
+
+
 
     def create_window(self):
         window = tk.CTk()
@@ -157,13 +195,20 @@ class SafetyDemoGui():
 
         # blink with button 
         
-            
-        # for i in range(3):
-        #     self.blink_button.configure(bg_color="white")
-        #     # time.sleep(1)
-        #     self.blink_button.configure(bg_color="grey")
-
-
+    def update_picture(self):
+        self.time_value += 0.2
+        img_buf = plot_sqare_wave(self.time_value)
+        Y_DIV = 1
+        X_DIV = 1
+        img_buf = img_buf.resize((int(img_buf.size[0]/X_DIV), int(img_buf.size[1]/Y_DIV)), Image.ANTIALIAS)
+        tk_plot = ImageTk.PhotoImage(img_buf)
+        
+        # label_plot = tk.CTkLabel(image=tk_plot , master=self.window)
+        # self.label_plot.image = tk_plot
+        self.label_plot.configure(image=tk_plot)
+        self.label_plot.image = tk_plot
+        self.root_window.after(800, self.update_picture)
+        
     # def periodic_connection_check_init(self):
     #     scheduler = BlockingScheduler()
     #     scheduler.add_job(self.check_board_connection, 'interval', seconds=3)
@@ -224,8 +269,6 @@ class SafetyDemoGui():
                 serial_port.write(f'{data}\r\n'.encode())
         time.sleep(0.01)
 
-
-
     
     def update_progress_bar_value(self):
         if self.progress_bar_value >= 1:
@@ -234,6 +277,10 @@ class SafetyDemoGui():
         self.progress_bar.set (value=self.progress_bar_value)
         # print(f"Progress bar value: {self.progress_bar_value}")
         self.root_window.after(1000, self.update_progress_bar_value)
+
+    def on_closing(self):
+        # if messagebox.askokcancel("Quit", "Do you want to quit?"):
+        self.root_window.destroy()
 
 class Pattern_Block:
     default_button_height = 30
@@ -278,6 +325,27 @@ class Pattern_Block:
         print(f"Pattern {self.pattern_number} selected")
 
 
+def plot_sqare_wave(t):
+    # Create pil buffer
+    img_buf = io.BytesIO()
+    # Create figure
+    fig = plt.figure( figsize=(3,2), dpi=200)
+    # Add x axis label 
+    plt.xlabel('Time (s)')
+    # Add y axis label
+    plt.ylabel('Voltage (V)')
+    # Add title
+    plt.title('Approximate clock and derivation')
+    x = np.linspace(0, 2*np.pi, 100)
+    y = np.sin(x + t)
+    y_ref = np.sin(x)
+    plt.plot(x, y, label='Signal')
+    plt.plot(x, y_ref, label='Reference')
+    plt.legend()
+    # plt.show()
+    plt.savefig(img_buf, format='png')
+    # img_buf.seek(0)
+    return Image.open(img_buf)
         
 
 

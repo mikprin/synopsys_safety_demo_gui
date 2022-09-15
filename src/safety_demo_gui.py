@@ -3,6 +3,9 @@ import tkinter as tk
 import threading
 import time, os, sys
 
+import matplotlib.pyplot as plt
+import numpy as np 
+
 # Imports to work with serial port
 import serial
 import serial.tools.list_ports
@@ -168,6 +171,16 @@ class SafetyDemoGui():
                 print(f"Writting to serial port: {data}")
                 serial_port.write(f'{data}\r\n'.encode())
         time.sleep(0.01)
+
+
+def generate_sqare_wave_plot():
+    x = np.arange(0, 2*np.pi, 0.01)
+    y = np.sin(x)
+    plt.plot(x, y)
+    plt.show()
+
+
+
 
 class Pattern_Block:
     def __init__(self, window, pattern_name, pattern_number , offset = 0):
