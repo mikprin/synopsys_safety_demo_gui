@@ -12,12 +12,13 @@ class UartHandler:
         # self.serial.open()
         
         self.quene_mutex = threading.Lock()
+        self.line_quene_mutex = threading.Lock()
         self.receive_thread = threading.Thread(target=self.receive)
         self.receive_thread.start()
 
         self.stop_reading = False
 
-        self.line_queue = []
+        self.recive_quene = []
 
     def send(self, data, add_newline=True):
         """Send data to the serial port."""
@@ -34,17 +35,24 @@ class UartHandler:
             # function `inWaiting()` below!
             if (self.serial.inWaiting() > 0):
                 # read the bytes and convert from binary array to ASCII
-                data_str = self.serial.read(self.serial.inWaiting()).decode('ascii').strip()
+                data_str = self.serial.read(self.serial.inWaiting()).decode('utf-8').rstrip().replace("\r","")
                 # print the incoming string without putting a new-line
                 # ('\n') automatically after every print()
                 # print(data_str, end='')
                 with self.quene_mutex:
-                    self.line_queue.append(data_str)
+                    self.recive_quene.append(data_str)
             # Break if self.stop_reading is set to True
             if self.stop_reading:
                 break
             time.sleep(0.01)
 
+    def recive_quene_parser(self):
+        with self.quene_mutex:
+            if len(self.recive_quene) > 0:
+                data = self.recive_quene.pop(0).rstrip().split("\n")
+                return data
+            else:
+                return None
 
     def check_read_thread(self , restart = False):
         if not self.receive_thread.is_alive():
@@ -65,4 +73,4 @@ class UartHandler:
 
     def clear_quene(self):
         with self.quene_mutex:
-            self.line_queue = []
+            self.recive_quene = []
