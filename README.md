@@ -15,6 +15,11 @@ using the `requirements.txt` file in the root of this repository.
 
 To launch the GUI just run `safety_demo_ctk_gui.py` with your python3.10 installation.
 
+## Hardware connection
+
+To see that board was connected all you need is to connect computer USB port with the board's UART micro USB port. After that you will see that connection button is green and board readings is there. Board will send readings only of power is ON.
+
+(picture of the port will be here)
 # Archetechture
 
 Source are presented with `safety_demo_ctk_gui.py` with `SafetyDemoGui` class and `uart_handler` with `UartHandler`.
