@@ -2,7 +2,7 @@ import tkinter
 import numpy as np
 import customtkinter as tk
 import threading
-import time, os, sys, io
+import time, os, sys, io , re
 import matplotlib.pyplot as plt
 
 # Imports to work with serial port
@@ -13,6 +13,10 @@ from PIL import ImageTk, Image
 
 from apscheduler.schedulers.blocking import BlockingScheduler
 
+# My own files
+import uart_handler
+
+
 tk.set_appearance_mode("dark")
 
 
@@ -21,6 +25,7 @@ class SafetyDemoGui():
     board_connected = False
 
     board_product_name = "CP2108 Quad USB to UART Bridge Controller"
+    board_pattern = ".*Silicon Labs Quad CP2108 USB to UART Bridge: Interface 0.*"
 
     def __init__(self):
         self.root_window = self.create_window()
@@ -225,16 +230,21 @@ class SafetyDemoGui():
         self.check_ports()
         self.root_window.after(2000, self.periodic_connection_check_init)
 
-    def get_serial_ports(self):
-        ports = serial.tools.list_ports.comports()
-        return ports
 
     def check_ports(self):
-        ports = self.get_serial_ports()
-        for port in ports:
-            if port.product == self.board_product_name:
-                self.board_connect()
-                return True
+        # ports = self.get_serial_ports()
+        for port in serial.tools.list_ports.comports():
+        # print(port.description)
+
+            # check board regular expression
+            if re.match(self.board_pattern, port.description):
+                print("Arduino found")
+                uart = uart_handler.UartHandler(port.device, 115200)
+                break
+            # for port in ports:
+            #     if port.product == self.board_product_name:
+            #         self.board_connect()
+            #         return True
         self.board_disconnect()
         return False    
 
