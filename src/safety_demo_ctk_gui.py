@@ -62,8 +62,6 @@ class SafetyDemoGui():
 
         # ============ create left frame  ============
 
-
-
         # Synopsys logo image
         
         synopsys_logo_img = Image.open("../img/Synopsys_Logo.png") # USE ABSOLUTE PATH TODO
@@ -121,18 +119,13 @@ class SafetyDemoGui():
         # self.grid_matrix += len(self.patterns)
         for pattern in self.patterns:
             self.grid_matrix += pattern.height
-        
-
-
+    
         ######################## Add picture to the window ########################
 
         # Create sqare wave image
         # self.time_value = 0.1
         # img_buf = plot_sqare_wave(self.time_value)
         # Resize image
-
-        
-
 
         # Y_DIV = 1
         # X_DIV = 1
@@ -147,7 +140,6 @@ class SafetyDemoGui():
         # self.root_window.after(1000, self.update_picture)
 
 
-
         # Debug window
         # self.serial_status_label = tk.CTkLabel(self.window, text = "Serial Status")
         # self.serial_status_label.grid(column= self.far_right_colomn, row=3, pady=2, padx = 15 , columnspan=2)
@@ -158,23 +150,14 @@ class SafetyDemoGui():
         # # self.connect_button.pack()
         # # self.grid_matrix += 1
 
-
         # self.change_connection_status_button.pack()
 
         # self.periodic_add_serial_status()
         # self.serial_status_label.pack()
         # self.serial_status_log.pack()
 
-
-
         self.periodic_connection_check_init() # Init port check
-
         self.root_window.mainloop()
-
-
-
-
-
 
 
     def create_window(self):
