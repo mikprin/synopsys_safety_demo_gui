@@ -4,7 +4,7 @@ This is a simple UART wrapping GUI for communication with the ZCU106 board.
 
 # Manual installation
 
-You need to have python3.10 and python3-pip installed for your platform. This is a main requirement.
+You need to have python3.10 and python3-pip installed for your platform. This is a main requirement. You can find the latest python [here](https://www.python.org/downloads/). You also need to install  python3-pip along the way.
 
 To install python3 dependencies from attached file, run:
 
