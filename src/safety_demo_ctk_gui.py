@@ -12,7 +12,7 @@ import serial.tools.list_ports
 from PIL import ImageTk, Image 
 
 from apscheduler.schedulers.blocking import BlockingScheduler
-
+from functools import partial
 # My own files
 import uart_handler
 
@@ -26,10 +26,11 @@ class SafetyDemoGui():
 
     board_product_name = "CP2108 Quad USB to UART Bridge Controller"
     board_pattern = ".*Silicon Labs Quad CP2108 USB to UART Bridge: Interface 0.*"
+    events_dict = { "PATTERN_DONE":"" , "STARTED":"" ,  "PATTERN_STOP":"", "PATTERN_SKIP":"" , "BLINK":"" , "SMS_RESET":"" }
 
     def __init__(self):
         self.root_window = self.create_window()
-
+        self.uart = None
         self.root_window.protocol("WM_DELETE_WINDOW", self.on_closing)  # call .on_closing() when app gets closed
         # Make temp directory if doesn't exist
 
@@ -42,6 +43,7 @@ class SafetyDemoGui():
         self.uart_lock = threading.Lock()
         self.uart_log_lock = threading.Lock()
 
+        
         self.far_right_colomn = 0
         
         # ============ create two frames ============
@@ -58,8 +60,6 @@ class SafetyDemoGui():
         self.window = tk.CTkFrame(master=self.root_window , width=400, corner_radius=0)
         self.window.grid(row=0, column=1, sticky="nswe", padx=20, pady=20)
 
-
-
         # ============ create left frame  ============
 
         # Synopsys logo image
@@ -75,11 +75,11 @@ class SafetyDemoGui():
         
         # Add logo to the left frame
         # self.frame_left.grid_columnconfigure(0, weight=1)
-        label_log = tk.CTkLabel(text="Safety Demo log", master=self.frame_left)
-        label_log.grid(column= self.far_right_colomn, row=2 , pady=10 , padx=10 , columnspan=2, sticky="n")
-
+        self.label_log = tk.CTkLabel(text="Safety Demo log", master=self.frame_left)
+        self.label_log.grid(column= self.far_right_colomn, row=2 , pady=10 , padx=10 , columnspan=2, sticky="n")
 
         # ============ create frame_right grid ============
+        
         self.window.columnconfigure((0, 1), weight=1)
         self.window.columnconfigure(2, weight=0)
 
@@ -107,18 +107,32 @@ class SafetyDemoGui():
         self.blink_button.grid(column=0, row=self.grid_matrix , padx=10, pady=10 , sticky="we" , columnspan = 2  )
         self.grid_matrix += 1
 
+        # Add reset button
+        self.reset_button = tk.CTkButton(self.window, text ="Reset", command = self.send_reset_command , height = 50)
+        self.reset_button.grid(column=0, row=self.grid_matrix , padx=10, pady=10 , sticky="we" , columnspan = 2  )
+        self.grid_matrix += 1
+
         # Add serial status log
         # self.serial_status_log = tk.CTkTextbox(self.window, height=10, width=30)
 
 
         # Create patterns buttons
-        self.pattern_names = ["Pattern 1", "Pattern 2", "Pattern 3", "Pattern 4", "Pattern 5"]
+        # self.pattern_definition = ["Connectivity_check", "BIST", "XLBIST", "Pattern 4", "Pattern 5"]
+        self.pattern_definition_dict = [ {"Connectivity_check":"","index":0,"reset":True },
+                                    {"name":"Connectivity_check","index":1,"reset":True}, 
+                                    {"name":"BIST","index":2,"reset":True},]
         self.patterns = []
-        for i in range(len(self.pattern_names)):
-            self.patterns.append(Pattern_Block ( self.window, self.pattern_names[i], i , self.grid_matrix ))
+        for pattern_def in self.pattern_definition_dict:
+            self.patterns.append(Pattern_Block ( self.window, pattern_def["name"],
+                                                pattern_def["index"],
+                                                reset = pattern_def["reset"],
+                                                offset = self.grid_matrix,
+                                                # function = lambda: self.run_pattern( pattern_def['index'] )
+                                                ))
+            self.grid_matrix += self.patterns[-1].height
         # self.grid_matrix += len(self.patterns)
-        for pattern in self.patterns:
-            self.grid_matrix += pattern.height
+        # for pattern in self.patterns:
+        #     self.grid_matrix += pattern.height
     
         ######################## Add picture to the window ########################
 
@@ -162,28 +176,35 @@ class SafetyDemoGui():
 
     def create_window(self):
         window = tk.CTk()
-        window.title("Welcome to Safety GUI app")
+        window.title("Synopsys demontration safety GUI app")
         return window
 
     
     def board_connect(self):
         # self.
         self.board_connected = True
-        self.connect_button.configure(text="Connected", bg_color="green" , fg_color="grey")
+        self.connect_button.configure(text="Connected" , fg_color="green")
 
     def board_disconnect(self):
+        if self.uart:
+            with self.uart_lock:
+                del(self.uart)
+                self.uart = None
         self.board_connected = False
-        self.connect_button.configure(text="Not Connected", fg_color="red", bg_color="Red")
+        self.connect_button.configure(text="Not Connected", fg_color="red")
     
     def send_blink_command(self):
         if self.board_connected:
-            # port = self.get_serial_ports()[0].device
-            port = "/dev/ttyUSB0"
-            data = "b"
-            self.write_to_serial_port(data, port, self.uart_lock)
-            # write_thread = threading.Thread(target=self.write_to_serial_port, args=(data, self.uart_port, self.uart_lock))
+            # Add text to the label_log
+            text = ""
+            for event in self.uart.events:
+                text += str(event) + "\n"
+            self.label_log.configure(text=text)
+            self.write_to_serial_port("b")
         else:
             print("Board not connected")
+        
+        
 
         # blink with button 
         
@@ -216,20 +237,44 @@ class SafetyDemoGui():
 
     def check_ports(self):
         # ports = self.get_serial_ports()
-        for port in serial.tools.list_ports.comports():
-        # print(port.description)
+        if not self.board_connected:
+            for port in serial.tools.list_ports.comports():
+                # check ports against regular expression
+                if re.match(self.board_pattern, port.description):
+                    print("Board found")
+                    try:
+                        self.uart = uart_handler.UartHandler(port.device, 115200 , events_dict=self.events_dict)
+                        self.board_connect()
+                    except Exception as e:
+                        print("Failed to create UartHandler")
+                        print(e)
+                        self.board_disconnect()
+                        return False
+                    return True
+                # for port in ports:
+                #     if port.product == self.board_product_name:
+                #         self.board_connect()
+                #         return True
+            self.board_disconnect()
+            return False
+        else:
+            for port in serial.tools.list_ports.comports():
+                # check ports against regular expression
+                if re.match(self.board_pattern, port.description):
+                    return True
+            self.board_disconnect()
+            return False
+        return False
 
-            # check board regular expression
-            if re.match(self.board_pattern, port.description):
-                print("Arduino found")
-                uart = uart_handler.UartHandler(port.device, 115200)
-                break
-            # for port in ports:
-            #     if port.product == self.board_product_name:
-            #         self.board_connect()
-            #         return True
-        self.board_disconnect()
-        return False    
+
+    def pereodic_process_check(self):
+        for pattern in self.patterns:
+            if pattern.run:
+                ## HERE IS THE CODE TO RUN THE PATTERN
+                self.run_pattern(pattern)
+                pattern.run = False
+
+        self.root_window.after(100, self.pereodic_button_check)
 
     # def periodic_check_connection(self):
         
@@ -250,22 +295,11 @@ class SafetyDemoGui():
         self.root_window.after(2000, self.periodic_add_serial_status)
 
 
-
-    # def read_uart(self,port, uart_lock, file_lock, baud_rate=115200, temp_file="uart.log"):
-    #     serial_port = serial.Serial(port, baud_rate, timeout=0.1)
-    #     while True:
-    #         with uart_lock:
-    #             line = serial_port.readline().decode('utf-8').rstrip()
-    #         with file_lock:
-    #             with open(temp_file, 'a') as f:
-    #                 f.write(line + '\n')
             
-    def write_to_serial_port(self, data, port, uart_lock, baud_rate=115200):
-        with self.uart_lock:
-            with serial.Serial(port, baud_rate, timeout=0.05) as serial_port:
-                print(f"Writting to serial port: {data}")
-                serial_port.write(f'{data}\r\n'.encode())
-        time.sleep(0.01)
+    def write_to_serial_port(self, data):
+        if self.uart:
+            with self.uart_lock:
+                self.uart.send(str.encode(data))
 
     
     def update_progress_bar_value(self):
@@ -278,18 +312,38 @@ class SafetyDemoGui():
 
     def on_closing(self):
         # if messagebox.askokcancel("Quit", "Do you want to quit?"):
+        if self.uart:
+            with self.uart_lock:
+                del(self.uart)
+                self.uart = None
         self.root_window.destroy()
+
+    def run_pattern(self,pattern):
+        # pattern_number = pattern.pattern_number
+        print(f"Running pattern {pattern.name}")
+        if self.uart:
+            with self.uart_lock:
+                self.uart.send(str.encode(f"{pattern.pattern_number}"))
+
+    def send_reset_command(self):
+        if self.uart:
+            with self.uart_lock:
+                self.uart.send(str.encode("r"))
 
 class Pattern_Block:
     default_button_height = 30
     pady = 10
 
-    def __init__(self, window, pattern_name, pattern_number , offset = 0):
+    def __init__(self, window, pattern_name, pattern_number , reset = False , offset = 0 , function = None):
         self.height = 1
         self.colomn_couter = 0
         self.window = window
+        self.function = function
+        self.reset = reset
         self.pattern_name = pattern_name
         self.pattern_number = pattern_number
+
+        self.run = False
 
         self.pattern_status = "Never run"
         self.pattern_result = "None"
@@ -297,7 +351,7 @@ class Pattern_Block:
         # self.pattern_label 
 
         # ADd pattern button
-        self.pattern_button = tk.CTkButton(self.window, text = f"Run {self.pattern_name}", command = self.send_pattern_command , height = self.default_button_height)
+        self.pattern_button = tk.CTkButton(self.window, text = f"Run {self.pattern_name}", command = self.run_pattern , height = self.default_button_height)
         self.pattern_button.grid(column=self.colomn_couter, row= pattern_number + offset , padx=5, pady= self.pady , sticky="w" , columnspan=1 )
         self.colomn_couter += 1
 
@@ -319,8 +373,13 @@ class Pattern_Block:
         self.pattern_result.grid(column=self.colomn_couter, row= pattern_number + offset , padx=5, pady= self.pady  , sticky="e" )
         self.colomn_couter += 1
 
-    def send_pattern_command(self):
-        print(f"Pattern {self.pattern_number} selected")
+    def run_pattern(self):
+        print(f"Run pattern {self.pattern_name}")
+        self.pattern_status.configure(text = "Running")
+        self.pattern_result.configure(text = "None")
+        self.run = True
+
+
 
 
 def plot_sqare_wave(t):
@@ -349,3 +408,4 @@ def plot_sqare_wave(t):
 
 if __name__ == '__main__':
     safety_gui = SafetyDemoGui()
+    input("Press Enter to continue...")
