@@ -121,15 +121,15 @@ class SafetyDemoGui():
         self.pattern_definition_dict = [ {"Connectivity_check":"","index":0,"reset":True },
                                     {"name":"Connectivity_check","index":1,"reset":True}, 
                                     {"name":"BIST","index":2,"reset":True},]
-        self.patterns = []
+        self.patterns = {}
         for pattern_def in self.pattern_definition_dict:
-            self.patterns.append(Pattern_Block ( self.window, pattern_def["name"],
+            self.patterns[pattern_def["name"]] = Pattern_Block ( self.window, pattern_def["name"],
                                                 pattern_def["index"],
                                                 reset = pattern_def["reset"],
                                                 offset = self.grid_matrix,
                                                 # function = lambda: self.run_pattern( pattern_def['index'] )
-                                                ))
-            self.grid_matrix += self.patterns[-1].height
+                                                )
+            self.grid_matrix += self.patterns[pattern_def["name"]].height
         # self.grid_matrix += len(self.patterns)
         # for pattern in self.patterns:
         #     self.grid_matrix += pattern.height
@@ -268,7 +268,7 @@ class SafetyDemoGui():
 
 
     def pereodic_process_check(self):
-        for pattern in self.patterns:
+        for pattern in self.patterns.values():
             if pattern.run:
                 ## HERE IS THE CODE TO RUN THE PATTERN
                 self.run_pattern(pattern)
