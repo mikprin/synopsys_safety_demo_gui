@@ -33,8 +33,8 @@ class SafetyDemoGui():
         self.uart = None
         self.root_window.protocol("WM_DELETE_WINDOW", self.on_closing)  # call .on_closing() when app gets closed
         # Make temp directory if doesn't exist
-
-        tempdir = os.path.join("..","temp") # TODO change to absolute path  
+        self.this_file_path = os.path.abspath(os.path.dirname(__file__))
+        tempdir = os.path.join( self.this_file_path , "..","temp")  
         if not os.path.exists(tempdir):
             os.makedirs(tempdir)
 
@@ -43,7 +43,7 @@ class SafetyDemoGui():
         self.uart_lock = threading.Lock()
         self.uart_log_lock = threading.Lock()
 
-        
+
         self.far_right_colomn = 0
         
         # ============ create two frames ============
@@ -64,7 +64,7 @@ class SafetyDemoGui():
 
         # Synopsys logo image
         
-        synopsys_logo_img = Image.open("../img/Synopsys_Logo.png") # USE ABSOLUTE PATH TODO
+        synopsys_logo_img = Image.open( os.path.join ( self.this_file_path, "..", "img" , "Synopsys_Logo.png")) # USE ABSOLUTE PATH TODO
         
         logo_width, logo_height = synopsys_logo_img.size
         synopsys_logo_img = synopsys_logo_img.resize((int(logo_width/5), int(logo_height/5)), Image.ANTIALIAS)
@@ -118,12 +118,15 @@ class SafetyDemoGui():
 
         # Create patterns buttons
         # self.pattern_definition = ["Connectivity_check", "BIST", "XLBIST", "Pattern 4", "Pattern 5"]
-        self.pattern_definition_dict = [ {"Connectivity_check":"","index":0,"reset":True },
-                                    {"name":"Connectivity_check","index":1,"reset":True}, 
-                                    {"name":"BIST","index":2,"reset":True},]
+        self.pattern_definition_dict = [
+                                    {"name":"Connectivity_check","index":0,"reset":True}, 
+                                    {"name":"BIST","index":1,"reset":True},
+                                    {"name":"XLBIST","index":2,"reset":True}
+                                    ]
         self.patterns = []
         for pattern_def in self.pattern_definition_dict:
-            self.patterns.append(Pattern_Block ( self.window, pattern_def["name"],
+            self.patterns.append(Pattern_Block ( self.window,
+                                                pattern_def["name"],
                                                 pattern_def["index"],
                                                 reset = pattern_def["reset"],
                                                 offset = self.grid_matrix,
@@ -170,7 +173,11 @@ class SafetyDemoGui():
         # self.serial_status_label.pack()
         # self.serial_status_log.pack()
 
+        # Periodic updates
+        
+        self.pereodic_process_check()
         self.periodic_connection_check_init() # Init port check
+        self.event_check()
         self.root_window.mainloop()
 
 
@@ -273,15 +280,52 @@ class SafetyDemoGui():
                 ## HERE IS THE CODE TO RUN THE PATTERN
                 self.run_pattern(pattern)
                 pattern.run = False
+        self.root_window.after(500, self.pereodic_process_check)
 
-        self.root_window.after(100, self.pereodic_button_check)
 
-    # def periodic_check_connection(self):
-        
-    #     self.check_board_connection()
-    #     self.window.after(2000, self.periodic_check_connection)
+    def event_check(self):
+        if self.uart:
+            events_to_process = [] # Adding events to the list to avoid changing the list while iterating
+            with self.uart.event_mutex:
+                # print(f"Events to process: {len(self.uart.events)}")
+                if self.uart.events:
+                    for event in self.uart.events:
+                        self.label_log.configure(text=str(event))
 
-    # Debug call
+                        # EVENT PROCESS_DONE
+                        if event.event_type == "PATTERN_DONE":
+                            events_to_process.append(event)
+                        self.uart.events.remove(event)
+
+                        
+
+                        # EVENT ...
+
+                        # EVENT SMS_RESET
+                        # if event.event_type == "SMS_RESET":
+                        #     for pattern in self.patterns:
+                        #         pattern.reset()
+
+            # Now iterate over processes without mutex
+            for event in events_to_process:
+                self.update_pattern_status(event)
+        self.root_window.after(100, self.event_check)
+
+
+    def update_pattern_status(self,event):
+        print(f"Updating pattern {event} status")
+        if event.dict_data:
+            pattern_index = int(event.dict_data["patternIdx"])
+            pattern_result = str(event.dict_data["result"])
+            
+            # pattetn_name = self.patterns[pattern_index].pattern_name
+
+            self.patterns[pattern_index].status = pattern_result
+            self.patterns[pattern_index].pattern_result.configure(text=pattern_result)
+            self.patterns[pattern_index].pattern_result.configure(fg_color="green" if pattern_result == "PASSED" else "red")
+
+        else:
+            print("Event dict data is empty!!!")
 
     def change_connection_status(self):
         self.board_connected = not self.board_connected
@@ -320,10 +364,14 @@ class SafetyDemoGui():
 
     def run_pattern(self,pattern):
         # pattern_number = pattern.pattern_number
-        print(f"Running pattern {pattern.name}")
+        print(f"Running pattern {pattern.pattern_name}")
         if self.uart:
+            if pattern.reset:
+                with self.uart_lock:
+                    self.uart.send(str.encode("r"))
+                time.sleep(0.5)
             with self.uart_lock:
-                self.uart.send(str.encode(f"{pattern.pattern_number}"))
+                self.uart.send(str(pattern.pattern_number).encode())
 
     def send_reset_command(self):
         if self.uart:
@@ -378,6 +426,12 @@ class Pattern_Block:
         self.pattern_status.configure(text = "Running")
         self.pattern_result.configure(text = "None")
         self.run = True
+
+    def reset(self):
+        self.pattern_status.configure(text = "Never run")
+        self.pattern_result.configure(text = "None")
+
+        self.run = False
 
 
 

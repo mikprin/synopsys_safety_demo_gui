@@ -17,6 +17,7 @@ class UartHandler:
         self.line_quene_mutex = threading.Lock()
         self.event_mutex = threading.Lock()
         self.stop_reading = False
+        self.stop_parser = False
         self.recive_quene = []
         self.events = []
 
@@ -82,14 +83,14 @@ class UartHandler:
                     # Check if line contain EVENT:* with regex
                     if line.startswith("EVENT:"):
                         line = line.replace("EVENT: ","")
-                        line_list = line.split(" ")
+                        line_list = line.split(":")
                         for event in events_dict.keys():
                             if line_list[0] in event:
                                 print(f"Event detected: {event}. Adding to event dict")
                                 with self.event_mutex:
                                     # Add event to event dict
-                                    self.events.append(Event(event, original_data=line))
-            if self.stop_reading:
+                                    self.events.append(Event(event, original_data=line , list_data = line_list))
+            if self.stop_reading or self.stop_parser:
                 break
             time.sleep(0.01)
 
@@ -118,11 +119,25 @@ class UartHandler:
 
 
 class Event:
-    def __init__(self, event_type , original_data=""):
+    def __init__(self, event_type , original_data="" , list_data = []):
         self.event_type = event_type
         self.event_timestamp = int(time.time())
         self.original_data = original_data
+        self.dict_data = {}
+        if list_data:
+            for data in list_data:
+                splitted_data = data.split("=")
+                if len(splitted_data) > 1:
+                    self.dict_data[splitted_data[0].replace(" ","")] = splitted_data[1].replace(" ","")
+                # else:
+                #     self.dict_data[data.split(",")[0]] = None
     def __str__(self):
-        return f"{self.event_type}:{self.event_timestamp}"
+        if self.dict_data:
+            return f"{self.event_type}:{self.event_timestamp} , {self.dict_data}"
+        else:
+            return f"{self.event_type}:{self.event_timestamp} , {self.original_data}"
     def __repr__(self) -> str:
-        return f"{self.event_type}:{self.event_timestamp}"
+        if self.dict_data:
+            return f"{self.event_type}:{self.event_timestamp} , {self.dict_data}"
+        else:
+            return f"{self.event_type}:{self.event_timestamp} , {self.original_data}"
