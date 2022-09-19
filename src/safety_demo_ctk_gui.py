@@ -141,7 +141,7 @@ class SafetyDemoGui():
                                                 offset = self.grid_matrix,
                                                 # function = lambda: self.run_pattern( pattern_def['index'] )
                                                 ))
-            self.grid_matrix += self.patterns[pattern_def["name"]].height
+            self.grid_matrix += self.patterns[-1].height
         # self.grid_matrix += len(self.patterns)
         # for pattern in self.patterns:
         #     self.grid_matrix += pattern.height
@@ -275,7 +275,7 @@ class SafetyDemoGui():
 
 
     def pereodic_process_check(self):
-        for pattern in self.patterns.values():
+        for pattern in self.patterns:
             if pattern.run:
                 ## HERE IS THE CODE TO RUN THE PATTERN
                 self.run_pattern(pattern)
