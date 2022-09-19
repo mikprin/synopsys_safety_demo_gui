@@ -130,7 +130,10 @@ class SafetyDemoGui():
         self.pattern_definition_dict = [
                                     {"name":"Connectivity_check","index":0,"reset":True}, 
                                     {"name":"BIST","index":1,"reset":True},
-                                    {"name":"XLBIST","index":2,"reset":True}
+                                    {"name":"XLBIST","index":2,"reset":True},
+                                    {"name":"ECC_init","index":3,"reset":False},
+                                    {"name":"Ecc_test","index":4,"reset":False},
+                                    {"name":"ECC read WDR","index":5,"reset":False}
                                     ]
         self.patterns = []
         for pattern_def in self.pattern_definition_dict:
