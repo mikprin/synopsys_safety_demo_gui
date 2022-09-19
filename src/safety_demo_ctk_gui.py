@@ -140,7 +140,7 @@ class SafetyDemoGui():
                                                 reset = pattern_def["reset"],
                                                 offset = self.grid_matrix,
                                                 # function = lambda: self.run_pattern( pattern_def['index'] )
-                                                )
+                                                ))
             self.grid_matrix += self.patterns[pattern_def["name"]].height
         # self.grid_matrix += len(self.patterns)
         # for pattern in self.patterns:
