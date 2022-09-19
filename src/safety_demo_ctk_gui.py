@@ -1,3 +1,4 @@
+from ast import pattern
 import tkinter
 import numpy as np
 import customtkinter as tk
@@ -53,13 +54,15 @@ class SafetyDemoGui():
         self.root_window.grid_rowconfigure(0, weight=1)
 
         self.frame_left = tk.CTkFrame(master=self.root_window,
-                                                 width=180,
+                                                 width=400,
                                                  corner_radius=0)
         self.frame_left.grid(row=0, column=0, sticky="nswe")
+        self.frame_left.grid_propagate(0)
 
-        self.window = tk.CTkFrame(master=self.root_window , width=400, corner_radius=0)
+
+        self.window = tk.CTkFrame(master=self.root_window, corner_radius=0)
         self.window.grid(row=0, column=1, sticky="nswe", padx=20, pady=20)
-
+  
         # ============ create left frame  ============
 
         # Synopsys logo image
@@ -71,7 +74,7 @@ class SafetyDemoGui():
         synopsys_logo_tk = ImageTk.PhotoImage(synopsys_logo_img)
         label1 = tk.CTkLabel(image=synopsys_logo_tk , master=self.frame_left)
         label1.image = synopsys_logo_tk
-        label1.grid(column= self.far_right_colomn, row=0 , pady=10 , padx=10 , columnspan=2, rowspan=2, sticky="nsew")
+        label1.grid(column= self.far_right_colomn, row=0 , pady=10 , padx=10 , columnspan=2, rowspan=2, sticky="nw")
         
         # Add logo to the left frame
         # self.frame_left.grid_columnconfigure(0, weight=1)
@@ -95,7 +98,7 @@ class SafetyDemoGui():
         
         # Add demo progress bar
         self.progress_bar = tk.CTkProgressBar(self.window, width=200, height=20)
-        self.progress_bar.grid(column=2, row=self.grid_matrix, sticky="we", padx=10, pady=10, columnspan=2)
+        self.progress_bar.grid(column=3, row=self.grid_matrix, sticky="we", padx=10, pady=10, columnspan=2)
         
         self.progress_bar_value = 0
         self.update_progress_bar_value()
@@ -104,7 +107,13 @@ class SafetyDemoGui():
         # Add blink button
 
         self.blink_button = tk.CTkButton(self.window, text ="Blink", command = self.send_blink_command , height = 50) 
-        self.blink_button.grid(column=0, row=self.grid_matrix , padx=10, pady=10 , sticky="we" , columnspan = 2  )
+        self.blink_button.grid(column=0, row=self.grid_matrix , padx=10, pady=10 , sticky="we" , columnspan = 1  )
+
+
+        # Add error injection button
+
+        self.error_injection_button = tk.CTkButton(self.window, text ="Error Injection", command = self.send_error_injection_command , height = 50)
+        self.error_injection_button.grid(column=1, row=self.grid_matrix , padx=10, pady=10 , sticky="we" , columnspan = 1  )
         self.grid_matrix += 1
 
         # Add reset button
@@ -210,11 +219,7 @@ class SafetyDemoGui():
             self.write_to_serial_port("b")
         else:
             print("Board not connected")
-        
-        
-
-        # blink with button 
-        
+       
     def update_picture(self):
         del(self.label_plot.image)
         self.time_value += 0.2
@@ -230,12 +235,6 @@ class SafetyDemoGui():
         self.label_plot.image = tk_plot
         self.root_window.after(800, self.update_picture)
         
-    # def periodic_connection_check_init(self):
-    #     scheduler = BlockingScheduler()
-    #     scheduler.add_job(self.check_board_connection, 'interval', seconds=3)
-    #     # scheduler.start()
-    #     check_thread =  threading.Thread(target=scheduler.start)
-    #     return check_thread
 
     def periodic_connection_check_init(self):
         self.check_ports()
@@ -243,6 +242,7 @@ class SafetyDemoGui():
 
 
     def check_ports(self):
+        """Scan for available ports. If board is detected, connect to it (create uart handler)."""
         # ports = self.get_serial_ports()
         if not self.board_connected:
             for port in serial.tools.list_ports.comports():
@@ -284,6 +284,7 @@ class SafetyDemoGui():
 
 
     def event_check(self):
+        '''Check if there are any events in the events queue of the UartHandler and process them.'''
         if self.uart:
             events_to_process = [] # Adding events to the list to avoid changing the list while iterating
             with self.uart.event_mutex:
@@ -292,7 +293,7 @@ class SafetyDemoGui():
                     for event in self.uart.events:
                         self.label_log.configure(text=str(event))
 
-                        # EVENT PROCESS_DONE
+                        # EVENT PROCESS_DONE -> What to do if the pattern is done
                         if event.event_type == "PATTERN_DONE":
                             events_to_process.append(event)
                         self.uart.events.remove(event)
@@ -301,23 +302,28 @@ class SafetyDemoGui():
 
                         # EVENT ...
 
-                        # EVENT SMS_RESET
-                        # if event.event_type == "SMS_RESET":
-                        #     for pattern in self.patterns:
-                        #         pattern.reset()
+                        # EVENT STARTED -> What to do if the board is reseted.
+                        if event.event_type == "STARTED":
+                            for pattern in self.patterns:
+                                pattern.reset_pattern_gui()
 
             # Now iterate over processes without mutex
             for event in events_to_process:
                 self.update_pattern_status(event)
+
+        for pattern in self.patterns:
+            pattern.update_gui()
         self.root_window.after(100, self.event_check)
 
 
     def update_pattern_status(self,event):
         print(f"Updating pattern {event} status")
+        # self.patterns[pattern_index].run = False
+        # self.patterns[pattern_index].last_run = int(time.time())
         if event.dict_data:
             pattern_index = int(event.dict_data["patternIdx"])
             pattern_result = str(event.dict_data["result"])
-            
+            self.patterns[pattern_index].last_run = int(time.time())
             # pattetn_name = self.patterns[pattern_index].pattern_name
 
             self.patterns[pattern_index].status = pattern_result
@@ -378,6 +384,13 @@ class SafetyDemoGui():
             with self.uart_lock:
                 self.uart.send(str.encode("r"))
 
+    def send_error_injection_command(self):
+        print("Sending error injection command")
+        if self.uart:
+            with self.uart_lock:
+                self.uart.send(str.encode("e"))
+        self.error_injection_button.configure(fg_color="red")
+
 class Pattern_Block:
     default_button_height = 30
     pady = 10
@@ -390,7 +403,7 @@ class Pattern_Block:
         self.reset = reset
         self.pattern_name = pattern_name
         self.pattern_number = pattern_number
-
+        self.last_run = None
         self.run = False
 
         self.pattern_status = "Never run"
@@ -427,13 +440,16 @@ class Pattern_Block:
         self.pattern_result.configure(text = "None")
         self.run = True
 
-    def reset(self):
+    def reset_pattern_gui(self):
         self.pattern_status.configure(text = "Never run")
-        self.pattern_result.configure(text = "None")
-
+        self.pattern_result.configure(text = "None", fg_color = "grey", bg_color = "grey")
+        self.last_run = None
         self.run = False
 
-
+    def update_gui(self):
+        if self.last_run:
+            last_run = str(int(time.time()) - self.last_run) 
+            self.pattern_status.configure(text = f"Last run {last_run} seconds ago" )
 
 
 def plot_sqare_wave(t):
