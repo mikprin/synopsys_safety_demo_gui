@@ -1,4 +1,5 @@
 from ast import pattern
+from distutils.cmd import Command
 import tkinter
 import numpy as np
 import customtkinter as tk
@@ -29,10 +30,13 @@ tk.set_appearance_mode("dark")
 class SafetyDemoGui():
 
     board_connected = False
+    progress_bar_update_speed = 500
 
     board_product_name = "CP2108 Quad USB to UART Bridge Controller"
     board_pattern = ".*Silicon Labs Quad CP2108 USB to UART Bridge: Interface 0.*"
-    events_dict = { "PATTERN_DONE":"" , "STARTED":"" ,  "PATTERN_STOP":"", "PATTERN_SKIP":"" , "BLINK":"" , "SMS_RESET":"" }
+
+    # Important! This is the list of events that can be received from the board
+    events_dict = { "PATTERN_DONE":"" , "STARTED":"" ,  "PATTERN_STOP":"", "PATTERN_SKIP":"" , "BLINK":"" , "SMS_RESET":"" , "START_LOOP":"", "STOP_LOOP":"" , "CHECK_LOOP":"" }
 
     top_button_height = 50
 
@@ -46,6 +50,8 @@ class SafetyDemoGui():
         if not os.path.exists(tempdir):
             os.makedirs(tempdir)
 
+
+        self.board_loop = False # Here I store if board main function is in the loop or not. If not we need to send S to start it
 
         # Create locks
         self.uart_lock = threading.Lock()
@@ -113,13 +119,13 @@ class SafetyDemoGui():
         
         # Add blink button
 
-        self.blink_button = tk.CTkButton(self.window, text ="Blink", command = self.send_blink_command ,  height = self.top_button_height ) 
-        self.blink_button.grid(column=0, row=self.grid_matrix , padx=10, pady=10 , sticky="we" , columnspan = 2  )
+        self.power_button = tk.CTkButton(self.window, text ="KEY ON", command = self.send_start_command ,  height = self.top_button_height ) 
+        self.power_button.grid(column=0, row=self.grid_matrix , padx=10, pady=10 , sticky="we" , columnspan = 2  )
         
 
         # Add error injection button
 
-        self.error_injection_button = tk.CTkButton(self.window, text ="Error Injection", command = self.send_error_injection_command ,  height = self.top_button_height )
+        self.error_injection_button = tk.CTkButton(self.window, text ="Error Injection", command = self.send_blink_command ,  height = self.top_button_height )
         self.error_injection_button.grid(column=2, row=self.grid_matrix , padx=10, pady=10 , sticky="we" , columnspan = 1  )
 
         self.grid_matrix += 1 # Go next line
@@ -211,14 +217,18 @@ class SafetyDemoGui():
         # self.serial_status_label.pack()
         # self.serial_status_log.pack()
 
-        # Periodic updates
+        # ==================== Add init process  ====================
+
+        self.root_window.after(500, self.send_check_board_loop_status_command)
+
+        # ================ Turn Periodic updates ON =================
         
         self.pereodic_process_check()
         self.periodic_connection_check_init() # Init port check
         self.event_check()
         self.update_gui()
         self.root_window.mainloop()
-
+        
 
     def create_window(self):
         window = tk.CTk()
@@ -251,7 +261,13 @@ class SafetyDemoGui():
             self.write_to_serial_port("b")
         else:
             print("Board not connected")
-       
+    
+    def send_check_board_loop_status_command(self):
+        if self.uart:
+            self.write_to_serial_port("c")
+        else:
+            print("Board not connected")
+
     def update_picture(self):
         del(self.label_plot.image)
         self.time_value += 0.2
@@ -328,28 +344,46 @@ class SafetyDemoGui():
                         # EVENT PROCESS_DONE -> What to do if the pattern is done
                         if event.event_type == "PATTERN_DONE":
                             events_to_process.append(event)
-                        self.uart.events.remove(event)
 
+                        # EVENT CHECK_LOOP -> Checks c
+                        elif event.event_type == "CHECK_LOOP":
+                            if event.dict_data:
+                                self.board_loop = bool(event.dict_data["status"]) 
+                        # EVENT INNER LOOP START
                         
+                        elif event.event_type == "START_LOOP":
+                            self.board_loop = True
 
-                        # EVENT ...
+                        # EVENT INNER LOOP END
+
+                        elif event.event_type == "STOP_LOOP":
+                            self.board_loop = False
 
                         # EVENT STARTED -> What to do if the board is reseted.
-                        if event.event_type == "STARTED":
+                        elif event.event_type == "STARTED":
+                            self.board_loop = False
                             for pattern in self.patterns:
                                 pattern.reset_pattern_gui()
+
+
+                        # Remove event from the queue
+                        self.uart.events.remove(event)
 
             # Now iterate over processes without mutex
             for event in events_to_process:
                 self.update_pattern_status(event)
 
+        if self.board_loop:
+            self.power_button.configure(text="KEY OFF", fg_color="green")
+        else:
+            self.power_button.configure(text="KEY ON", fg_color="grey")
         
         self.root_window.after(100, self.event_check)
 
     def update_gui(self):
         for pattern in self.patterns:
             pattern.update_gui()
-        self.root_window.after(400, self.update_gui)
+        self.root_window.after(300, self.update_gui)
 
 
     def update_pattern_status(self,event):
@@ -384,7 +418,11 @@ class SafetyDemoGui():
         self.serial_status_log.configure(text = f" {self.get_serial_ports()}\nConnection status: {self.board_connected}")
         self.root_window.after(2000, self.periodic_add_serial_status)
 
-
+    def send_start_command(self):
+        print("Sending start command")
+        self.write_to_serial_port("s")
+        if not self.board_loop:
+            self.root_window.after(1000, self.run_all_tests)
             
     def write_to_serial_port(self, data):
         if self.uart:
@@ -393,18 +431,12 @@ class SafetyDemoGui():
 
     
     def update_progress_bar_value(self):
-        pattern_threads = []
-        timeout = 0
+        
+        
         if self.pereodic_switch_var.get() == "on":
             
             if self.progress_bar_value >= 1:
-                for pattern in self.patterns:
-                    print(f"Starting thread for pattern {pattern.pattern_name} with delay {timeout}")
-                    pattern_threads.append(
-                        threading.Thread(target=self.send_pattern_after_timeout, args=(timeout, pattern.pattern_number))
-                    )
-                    pattern_threads[-1].start()
-                    timeout += 1
+                self.run_all_tests()
 
             if self.progress_bar_value >= 1:
                 self.progress_bar_value = 0
@@ -412,7 +444,19 @@ class SafetyDemoGui():
             self.progress_bar.set (value=self.progress_bar_value)
             # print(f"Progress bar value: {self.progress_bar_value}")
              
-        self.root_window.after(1000, self.update_progress_bar_value)
+        self.root_window.after(self.progress_bar_update_speed, self.update_progress_bar_value)
+
+    def run_all_tests(self):
+        print("Running all tests")
+        timeout = 0
+        pattern_threads = []
+        for pattern in self.patterns:
+                    print(f"Starting thread for pattern {pattern.pattern_name} with delay {timeout}")
+                    pattern_threads.append(
+                        threading.Thread(target=self.send_pattern_after_timeout, args=(timeout, pattern.pattern_number))
+                    )
+                    pattern_threads[-1].start()
+                    timeout += 1
 
     def send_pattern_after_timeout(self, timeout , pattern):
         """Sleep for `timeout` ms and then send pattern to the board."""
