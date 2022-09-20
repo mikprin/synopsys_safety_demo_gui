@@ -2,6 +2,10 @@ from ast import pattern
 import tkinter
 import numpy as np
 import customtkinter as tk
+import customtkinter
+# from customtkinter.font_manager import BOLD, Font
+
+
 import threading
 import time, os, sys, io , re
 import matplotlib.pyplot as plt
@@ -17,6 +21,7 @@ from functools import partial
 # My own files
 import uart_handler
 
+from color_gradient import ColorGradient
 
 tk.set_appearance_mode("dark")
 
@@ -28,6 +33,8 @@ class SafetyDemoGui():
     board_product_name = "CP2108 Quad USB to UART Bridge Controller"
     board_pattern = ".*Silicon Labs Quad CP2108 USB to UART Bridge: Interface 0.*"
     events_dict = { "PATTERN_DONE":"" , "STARTED":"" ,  "PATTERN_STOP":"", "PATTERN_SKIP":"" , "BLINK":"" , "SMS_RESET":"" }
+
+    top_button_height = 50
 
     def __init__(self):
         self.root_window = self.create_window()
@@ -70,7 +77,7 @@ class SafetyDemoGui():
         synopsys_logo_img = Image.open( os.path.join ( self.this_file_path, "..", "img" , "Synopsys_Logo.png")) # USE ABSOLUTE PATH TODO
         
         logo_width, logo_height = synopsys_logo_img.size
-        synopsys_logo_img = synopsys_logo_img.resize((int(logo_width/5), int(logo_height/5)), Image.ANTIALIAS)
+        synopsys_logo_img = synopsys_logo_img.resize((int(logo_width/4), int(logo_height/4)), Image.ANTIALIAS)
         synopsys_logo_tk = ImageTk.PhotoImage(synopsys_logo_img)
         label1 = tk.CTkLabel(image=synopsys_logo_tk , master=self.frame_left)
         label1.image = synopsys_logo_tk
@@ -83,6 +90,8 @@ class SafetyDemoGui():
 
         # ============ create frame_right grid ============
         
+        # self.window.configure("TButton", font=('Arial', 25))
+        
         self.window.columnconfigure((0, 1), weight=1)
         self.window.columnconfigure(2, weight=0)
 
@@ -90,36 +99,53 @@ class SafetyDemoGui():
         self.grid_matrix = 0 # Matrix to procedurally generate vertical widgets
         # self.window.columnconfigure(0, weight=1)
 
-        self.connect_button = tk.CTkButton(self.window, text ="Connect", command = self.check_ports , height= 40)
-        self.connect_button.grid(column=0, row=self.grid_matrix, sticky="we", padx=10, pady=10 , columnspan=4, rowspan=2)
-        self.grid_matrix += 2
+        self.connect_button = tk.CTkButton(self.window, text ="Connect", command = self.check_ports , height = self.top_button_height)
+        self.connect_button.grid(column=0, row=self.grid_matrix, sticky="we", padx=10, pady=10 , columnspan=3, rowspan=2)
+        
+        self.grid_matrix += 2 # Go next line
+
+
         # self.change_connection_status_button = tk.CTkButton(self.window, text ="Change Connection Status", command = self.change_connection_status)
         # self.change_connection_status_button.grid(column=0, row=1 , padx=10, pady=10, sticky="nsew")
         
-        # Add demo progress bar
-        self.progress_bar = tk.CTkProgressBar(self.window, width=200, height=20)
-        self.progress_bar.grid(column=3, row=self.grid_matrix, sticky="we", padx=10, pady=10, columnspan=2)
-        
-        self.progress_bar_value = 0
-        self.update_progress_bar_value()
+
 
         
         # Add blink button
 
-        self.blink_button = tk.CTkButton(self.window, text ="Blink", command = self.send_blink_command , height = 50) 
-        self.blink_button.grid(column=0, row=self.grid_matrix , padx=10, pady=10 , sticky="we" , columnspan = 1  )
-
+        self.blink_button = tk.CTkButton(self.window, text ="Blink", command = self.send_blink_command ,  height = self.top_button_height ) 
+        self.blink_button.grid(column=0, row=self.grid_matrix , padx=10, pady=10 , sticky="we" , columnspan = 2  )
+        
 
         # Add error injection button
 
-        self.error_injection_button = tk.CTkButton(self.window, text ="Error Injection", command = self.send_error_injection_command , height = 50)
-        self.error_injection_button.grid(column=1, row=self.grid_matrix , padx=10, pady=10 , sticky="we" , columnspan = 1  )
-        self.grid_matrix += 1
+        self.error_injection_button = tk.CTkButton(self.window, text ="Error Injection", command = self.send_error_injection_command ,  height = self.top_button_height )
+        self.error_injection_button.grid(column=2, row=self.grid_matrix , padx=10, pady=10 , sticky="we" , columnspan = 1  )
+
+        self.grid_matrix += 1 # Go next line
 
         # Add reset button
-        self.reset_button = tk.CTkButton(self.window, text ="Reset", command = self.send_reset_command , height = 50)
-        self.reset_button.grid(column=0, row=self.grid_matrix , padx=10, pady=10 , sticky="we" , columnspan = 2  )
+        self.reset_button = tk.CTkButton(self.window, text ="Reset", command = self.send_reset_command , height = self.top_button_height )
+        self.reset_button.grid(column=0, row=self.grid_matrix , padx=10, pady=10 , sticky="we" , columnspan = 1  )
+        
+
+        # Add pereodic switch slider
+        self.pereodic_switch_var = customtkinter.StringVar(value="off")
+        pereodic_switch = customtkinter.CTkSwitch(master=self.window, text="Pereodic execution", command=self.switch_event,
+                                        variable=self.pereodic_switch_var, onvalue="on", offvalue="off")
+        pereodic_switch.grid(column=2, row=self.grid_matrix , padx=10, pady=10 , sticky="we" , columnspan = 1  )
+
+        # Add demo progress bar
+        self.progress_bar = tk.CTkProgressBar(self.window, width=200, height=20)
+        self.progress_bar.grid(column=1, row=self.grid_matrix, sticky="we", padx=10, pady=10, columnspan=1)
+        
+        self.progress_bar_value = 0
+        self.update_progress_bar_value()
+
         self.grid_matrix += 1
+        
+
+ 
 
         # Add serial status log
         # self.serial_status_log = tk.CTkTextbox(self.window, height=10, width=30)
@@ -190,6 +216,7 @@ class SafetyDemoGui():
         self.pereodic_process_check()
         self.periodic_connection_check_init() # Init port check
         self.event_check()
+        self.update_gui()
         self.root_window.mainloop()
 
 
@@ -198,7 +225,9 @@ class SafetyDemoGui():
         window.title("Synopsys demontration safety GUI app")
         return window
 
-    
+    def switch_event(self):
+        print("switch toggled, current value:", self.pereodic_switch_var.get())  
+
     def board_connect(self):
         # self.
         self.board_connected = True
@@ -314,9 +343,13 @@ class SafetyDemoGui():
             for event in events_to_process:
                 self.update_pattern_status(event)
 
+        
+        self.root_window.after(100, self.event_check)
+
+    def update_gui(self):
         for pattern in self.patterns:
             pattern.update_gui()
-        self.root_window.after(100, self.event_check)
+        self.root_window.after(400, self.update_gui)
 
 
     def update_pattern_status(self,event):
@@ -332,7 +365,11 @@ class SafetyDemoGui():
             self.patterns[pattern_index].status = pattern_result
             self.patterns[pattern_index].pattern_result.configure(text=pattern_result)
             self.patterns[pattern_index].pattern_result.configure(fg_color="green" if pattern_result == "PASSED" else "red")
-
+            if pattern_result == "PASSED":
+                self.patterns[pattern_index].color_gradient = ColorGradient( mode = "green_to_grey")
+            else:
+                self.patterns[pattern_index].color_gradient = ColorGradient( mode = "red_to_grey")
+            
         else:
             print("Event dict data is empty!!!")
 
@@ -356,12 +393,35 @@ class SafetyDemoGui():
 
     
     def update_progress_bar_value(self):
-        if self.progress_bar_value >= 1:
-            self.progress_bar_value = 0
-        self.progress_bar_value = self.progress_bar_value + 0.05
-        self.progress_bar.set (value=self.progress_bar_value)
-        # print(f"Progress bar value: {self.progress_bar_value}")
+        pattern_threads = []
+        timeout = 0
+        if self.pereodic_switch_var.get() == "on":
+            
+            if self.progress_bar_value >= 1:
+                for pattern in self.patterns:
+                    print(f"Starting thread for pattern {pattern.pattern_name} with delay {timeout}")
+                    pattern_threads.append(
+                        threading.Thread(target=self.send_pattern_after_timeout, args=(timeout, pattern.pattern_number))
+                    )
+                    pattern_threads[-1].start()
+                    timeout += 1
+
+            if self.progress_bar_value >= 1:
+                self.progress_bar_value = 0
+            self.progress_bar_value = self.progress_bar_value + 0.05
+            self.progress_bar.set (value=self.progress_bar_value)
+            # print(f"Progress bar value: {self.progress_bar_value}")
+             
         self.root_window.after(1000, self.update_progress_bar_value)
+
+    def send_pattern_after_timeout(self, timeout , pattern):
+        """Sleep for `timeout` ms and then send pattern to the board."""
+        if self.uart:
+            time.sleep(timeout)
+            self.run_pattern(self.patterns[pattern])
+            return 1
+        else:
+            return 0
 
     def on_closing(self):
         # if messagebox.askokcancel("Quit", "Do you want to quit?"):
@@ -395,7 +455,7 @@ class SafetyDemoGui():
         self.error_injection_button.configure(fg_color="red")
 
 class Pattern_Block:
-    default_button_height = 30
+    default_button_height = 40
     pady = 10
 
     def __init__(self, window, pattern_name, pattern_number , reset = False , offset = 0 , function = None):
@@ -411,48 +471,50 @@ class Pattern_Block:
 
         self.pattern_status = "Never run"
         self.pattern_result = "None"
-
+        self.color_gradient = None
         # self.pattern_label 
 
         # ADd pattern button
-        self.pattern_button = tk.CTkButton(self.window, text = f"Run {self.pattern_name}", command = self.run_pattern , height = self.default_button_height)
-        self.pattern_button.grid(column=self.colomn_couter, row= pattern_number + offset , padx=5, pady= self.pady , sticky="w" , columnspan=1 )
+        self.pattern_button = tk.CTkButton(self.window, text = f"{self.pattern_name}", command = self.run_pattern , height = self.default_button_height , width = 300)
+        self.pattern_button.grid(column=self.colomn_couter, row= pattern_number + offset , padx=10, pady= self.pady , sticky="w" , columnspan= 2 )
         self.colomn_couter += 1
 
         # Add pattern status
 
-        self.pattern_status = tk.CTkLabel(self.window, text = self.pattern_status)
-        self.pattern_status.grid(column=self.colomn_couter, row= pattern_number + offset , padx=5, pady = self.pady  , sticky="nsew" , columnspan=2 )
-        self.colomn_couter += 2
+        # self.pattern_status = tk.CTkLabel(self.window, text = self.pattern_status)
+        # self.pattern_status.grid(column=self.colomn_couter, row= pattern_number + offset , padx=5, pady = self.pady  , sticky="nsew" , columnspan=2 )
+        # self.colomn_couter += 2
 
         # Add pattern result
 
-        self.pattern_result = tk.CTkLabel(self.window, text = self.pattern_result)
-        if self.pattern_result == "Pass":
-            self.pattern_result.configure(bg_color="green")
-        elif self.pattern_result == "Fail":
-            self.pattern_result.configure(bg_color="red")
-        else:
-            self.pattern_result.configure(bg_color="grey")
-        self.pattern_result.grid(column=self.colomn_couter, row= pattern_number + offset , padx=5, pady= self.pady  , sticky="e" )
+        self.pattern_result = tk.CTkLabel(self.window, text = self.pattern_result , height = self.default_button_height , width = 300)
+        # if self.pattern_result == "Pass":
+        #     self.pattern_result.configure(bg_color="green")
+        # elif self.pattern_result == "Fail":
+        #     self.pattern_result.configure(bg_color="red")
+        # else:
+        self.pattern_result.configure(bg_color="grey")
+        self.pattern_result.grid(column=self.colomn_couter, row= pattern_number + offset , padx=5, pady= self.pady  , sticky="e" , columnspan = 1 )
         self.colomn_couter += 1
 
     def run_pattern(self):
         print(f"Run pattern {self.pattern_name}")
-        self.pattern_status.configure(text = "Running")
+        # self.pattern_status.configure(text = "Running")
         self.pattern_result.configure(text = "None")
         self.run = True
 
     def reset_pattern_gui(self):
-        self.pattern_status.configure(text = "Never run")
+        # self.pattern_status.configure(text = "Never run")
         self.pattern_result.configure(text = "None", fg_color = "grey", bg_color = "grey")
         self.last_run = None
         self.run = False
 
     def update_gui(self):
         if self.last_run:
-            last_run = str(int(time.time()) - self.last_run) 
-            self.pattern_status.configure(text = f"Last run {last_run} seconds ago" )
+            last_run = str(int(time.time()) - self.last_run)
+            if self.color_gradient:
+                self.pattern_result.configure( fg_color = self.color_gradient.get_color() )
+            # self.pattern_status.configure(text = f"Last run {last_run} seconds ago" )
 
 
 def plot_sqare_wave(t):

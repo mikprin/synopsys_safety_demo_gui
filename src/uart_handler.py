@@ -133,11 +133,11 @@ class Event:
                 #     self.dict_data[data.split(",")[0]] = None
     def __str__(self):
         if self.dict_data:
-            return f"{self.event_type}:{self.event_timestamp} , {self.dict_data}"
+            return f"{self.event_type}, {self.dict_data}"
         else:
-            return f"{self.event_type}:{self.event_timestamp} , {self.original_data}"
+            return f"{self.event_type}, {self.original_data}"
     def __repr__(self) -> str:
         if self.dict_data:
-            return f"{self.event_type}:{self.event_timestamp} , {self.dict_data}"
+            return f"{self.event_type}, {self.dict_data}"
         else:
-            return f"{self.event_type}:{self.event_timestamp} , {self.original_data}"
+            return f"{self.event_type}, {self.original_data}"
