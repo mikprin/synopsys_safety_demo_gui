@@ -159,13 +159,29 @@ class SafetyDemoGui():
 
         # Create patterns buttons
         # self.pattern_definition = ["Connectivity_check", "BIST", "XLBIST", "Pattern 4", "Pattern 5"]
+
+        # test_0_0[] = "all_id_sel                                ";
+        # test_0_1[] = "FBIST                                     ";
+        # test_0_2[] = "BIST                                      ";
+        # test_0_3[] = "xlbist_wrapper_4_pattern_1                ";
+        # test_0_4[] = "smu_timer_run                             ";
+        # test_0_5[] = "ecc_wrapper_2_Initialization              ";
+        # test_0_6[] = "ecc_wrapper_2_Step1_interrupt_initiation  ";
+        # test_0_7[] = "ecc_wrapper_2_Step2_Interrupt_WDR_status  ";
+        # test_0_8[] = "reset                                     ";
+        # test_0_9[] = "set_ecc_wrapper_2_Initialization_test_in_0";
+        # test_0_10[] = "set_ecc_wrapper_2_Initialization_test_in_1";
+
+
         self.pattern_definition_dict = [
-                                    {"name":"Connectivity_check","index":0,"reset":True}, 
-                                    {"name":"BIST","index":1,"reset":True},
-                                    {"name":"XLBIST","index":2,"reset":True},
-                                    {"name":"ECC_init","index":3,"reset":False},
-                                    {"name":"Ecc_test","index":4,"reset":False},
-                                    {"name":"ECC read WDR","index":5,"reset":False}
+                                    {"name":"Connectivity check", "index":0, "reset":True  , "group" : None , "visible" : True },
+                                    {"name":"FBIST"             , "index":1, "reset":True  , "group" : None , "visible" : True },
+                                    {"name":"BIST"              , "index":2, "reset":True  , "group" : None , "visible" : True },
+                                    {"name":"XLBIST"            , "index":3, "reset":True  , "group" : None , "visible" : True },
+                                    {"name":"smu count"         , "index":4, "reset":True  , "group" : None , "visible" : True },
+                                    {"name":"ECC_init"          , "index":5, "reset":False , "group" : None , "visible" : True },
+                                    {"name":"Ecc_test"          , "index":6, "reset":False , "group" : None , "visible" : False},
+                                    {"name":"ECC read WDR"      , "index":7, "reset":False , "group" : None , "visible" : True }
                                     ]
         self.patterns = []
         for pattern_def in self.pattern_definition_dict:
@@ -174,6 +190,8 @@ class SafetyDemoGui():
                                                 pattern_def["index"],
                                                 reset = pattern_def["reset"],
                                                 offset = self.grid_matrix,
+                                                group = pattern_def["group"],
+                                                visible = pattern_def["visible"]
                                                 # function = lambda: self.run_pattern( pattern_def['index'] )
                                                 ))
             self.grid_matrix += self.patterns[-1].height
@@ -397,12 +415,14 @@ class SafetyDemoGui():
             # pattetn_name = self.patterns[pattern_index].pattern_name
 
             self.patterns[pattern_index].status = pattern_result
-            self.patterns[pattern_index].pattern_result.configure(text=pattern_result)
-            self.patterns[pattern_index].pattern_result.configure(fg_color="green" if pattern_result == "PASSED" else "red")
-            if pattern_result == "PASSED":
-                self.patterns[pattern_index].color_gradient = ColorGradient( mode = "green_to_grey")
-            else:
-                self.patterns[pattern_index].color_gradient = ColorGradient( mode = "red_to_grey")
+
+            if self.patterns[pattern_index].visible:
+                self.patterns[pattern_index].pattern_result.configure(text=pattern_result)
+                self.patterns[pattern_index].pattern_result.configure(fg_color="green" if pattern_result == "PASSED" else "red")
+                if pattern_result == "PASSED":
+                    self.patterns[pattern_index].color_gradient = ColorGradient( mode = "green_to_grey")
+                else:
+                    self.patterns[pattern_index].color_gradient = ColorGradient( mode = "red_to_grey")
             
         else:
             print("Event dict data is empty!!!")
@@ -431,10 +451,7 @@ class SafetyDemoGui():
 
     
     def update_progress_bar_value(self):
-        
-        
-        if self.pereodic_switch_var.get() == "on":
-            
+        if self.pereodic_switch_var.get() == "on": 
             if self.progress_bar_value >= 1:
                 self.run_all_tests()
 
@@ -443,7 +460,6 @@ class SafetyDemoGui():
             self.progress_bar_value = self.progress_bar_value + 0.05
             self.progress_bar.set (value=self.progress_bar_value)
             # print(f"Progress bar value: {self.progress_bar_value}")
-             
         self.root_window.after(self.progress_bar_update_speed, self.update_progress_bar_value)
 
     def run_all_tests(self):
@@ -502,12 +518,13 @@ class Pattern_Block:
     default_button_height = 40
     pady = 10
 
-    def __init__(self, window, pattern_name, pattern_number , reset = False , offset = 0 , function = None):
+    def __init__(self, window, pattern_name, pattern_number , reset = False , offset = 0 , function = None , visible = True , group = None):
         self.height = 1
         self.colomn_couter = 0
         self.window = window
         self.function = function
         self.reset = reset
+        self.visible = visible
         self.pattern_name = pattern_name
         self.pattern_number = pattern_number
         self.last_run = None
@@ -518,48 +535,50 @@ class Pattern_Block:
         self.color_gradient = None
         # self.pattern_label 
 
-        # ADd pattern button
-        self.pattern_button = tk.CTkButton(self.window, text = f"{self.pattern_name}", command = self.run_pattern , height = self.default_button_height , width = 300)
-        self.pattern_button.grid(column=self.colomn_couter, row= pattern_number + offset , padx=10, pady= self.pady , sticky="w" , columnspan= 2 )
-        self.colomn_couter += 1
+        if self.visible:
+            # ADd pattern button
+            self.pattern_button = tk.CTkButton(self.window, text = f"{self.pattern_name}", command = self.run_pattern , height = self.default_button_height , width = 300)
+            self.pattern_button.grid(column=self.colomn_couter, row= pattern_number + offset , padx=10, pady= self.pady , sticky="w" , columnspan= 2 )
+            self.colomn_couter += 1
 
-        # Add pattern status
+            # Add pattern status
 
-        # self.pattern_status = tk.CTkLabel(self.window, text = self.pattern_status)
-        # self.pattern_status.grid(column=self.colomn_couter, row= pattern_number + offset , padx=5, pady = self.pady  , sticky="nsew" , columnspan=2 )
-        # self.colomn_couter += 2
+            # self.pattern_status = tk.CTkLabel(self.window, text = self.pattern_status)
+            # self.pattern_status.grid(column=self.colomn_couter, row= pattern_number + offset , padx=5, pady = self.pady  , sticky="nsew" , columnspan=2 )
+            # self.colomn_couter += 2
 
-        # Add pattern result
+            # Add pattern result
 
-        self.pattern_result = tk.CTkLabel(self.window, text = self.pattern_result , height = self.default_button_height , width = 300)
-        # if self.pattern_result == "Pass":
-        #     self.pattern_result.configure(bg_color="green")
-        # elif self.pattern_result == "Fail":
-        #     self.pattern_result.configure(bg_color="red")
-        # else:
-        self.pattern_result.configure(bg_color="grey")
-        self.pattern_result.grid(column=self.colomn_couter, row= pattern_number + offset , padx=5, pady= self.pady  , sticky="e" , columnspan = 1 )
-        self.colomn_couter += 1
+            self.pattern_result = tk.CTkLabel(self.window, text = self.pattern_result , height = self.default_button_height , width = 300)
+            # if self.pattern_result == "Pass":
+            #     self.pattern_result.configure(bg_color="green")
+            # elif self.pattern_result == "Fail":
+            #     self.pattern_result.configure(bg_color="red")
+            # else:
+            self.pattern_result.configure(bg_color="grey")
+            self.pattern_result.grid(column=self.colomn_couter, row= pattern_number + offset , padx=5, pady= self.pady  , sticky="e" , columnspan = 1 )
+            self.colomn_couter += 1
 
     def run_pattern(self):
         print(f"Run pattern {self.pattern_name}")
         # self.pattern_status.configure(text = "Running")
-        self.pattern_result.configure(text = "None")
+        if self.visible:
+            self.pattern_result.configure(text = "None")
         self.run = True
 
     def reset_pattern_gui(self):
         # self.pattern_status.configure(text = "Never run")
-        self.pattern_result.configure(text = "None", fg_color = "grey", bg_color = "grey")
+        if self.visible:
+            self.pattern_result.configure(text = "None", fg_color = "grey", bg_color = "grey")
         self.last_run = None
         self.run = False
 
     def update_gui(self):
         if self.last_run:
             last_run = str(int(time.time()) - self.last_run)
-            if self.color_gradient:
+            if self.color_gradient and self.visible:
                 self.pattern_result.configure( fg_color = self.color_gradient.get_color() )
             # self.pattern_status.configure(text = f"Last run {last_run} seconds ago" )
-
 
 def plot_sqare_wave(t):
     # Create pil buffer
