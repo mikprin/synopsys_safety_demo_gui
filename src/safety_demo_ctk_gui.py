@@ -1,5 +1,3 @@
-from ast import pattern
-from distutils.cmd import Command
 import tkinter
 import numpy as np
 import customtkinter as tk
@@ -31,6 +29,8 @@ class SafetyDemoGui():
 
     board_connected = False
     progress_bar_update_speed = 500
+
+    left_window_width = 300
 
     board_product_name = "CP2108 Quad USB to UART Bridge Controller"
     board_pattern = ".*Silicon Labs Quad CP2108 USB to UART Bridge: Interface 0.*"
