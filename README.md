@@ -20,6 +20,10 @@ You need to install CP21xx drivers from [ the link  ( official silicon labs site
 
 To launch the GUI just run `safety_demo_ctk_gui.py` with your python3.10 installation.
 
+# Configuration
+
+The GUI is configured by the `config.ini` file. You can find it in the root of this repository.
+
 ## Hardware connection
 
 To see that board was connected all you need is to connect computer USB port with the board's UART micro USB port. After that you will see that connection button is green and board readings is there. Board will send readings only of power is ON.

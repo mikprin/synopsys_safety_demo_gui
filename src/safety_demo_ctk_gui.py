@@ -1,6 +1,7 @@
 # Tkinter imports
 from email.policy import default
 from random import random
+from random import randint
 import tkinter
 from tkinter import font
 import numpy as np
@@ -101,6 +102,9 @@ class SafetyDemoGui():
             if self.config.get("GUI", "print_debug_info"):
                 self.print_debug_info = bool(self.config.get("GUI", "print_debug_info"))
 
+            if self.config.get("GUI", "default_font_size"):
+                self.default_font = ("Arial", int(self.config.get("GUI", "default_font_size")) )
+                
             color = self.config.get("GUI", "default_text_color")
             if color:
                 if color == "yellow":
@@ -160,6 +164,13 @@ class SafetyDemoGui():
         self.label_log = tk.CTkLabel(text="Safety Demo log", master=self.frame_left)
         self.label_log.grid(column= self.far_right_colomn, row=2 , pady=10 , padx=10 , columnspan=2, sticky="n")
 
+        # Slider for period
+        self.label_period = tk.CTkLabel(text="Period (ms)", master=self.frame_left)
+        self.label_period.grid(column= self.far_right_colomn, row=3 , pady=10 , padx=10 , sticky="n")
+        self.sms_periodic_value_slider = customtkinter.CTkSlider(master=self.frame_left, from_= 500, to= 700, command=self.periodic_slider_event)
+        self.sms_periodic_value_slider.grid(column=0, row=4, sticky="s", padx=10, pady=10 , columnspan=1, rowspan=1)
+
+
         # ============ create frame_right grid ============
         
         # self.window.configure("TButton", font=('Arial', 25))
@@ -172,15 +183,9 @@ class SafetyDemoGui():
         # self.window.columnconfigure(0, weight=1)
 
         self.connect_button = tk.CTkButton(self.window, text ="Connect", command = self.check_ports , height = self.top_button_height , text_font=self.default_font, text_color=self.default_text_color)
-        self.connect_button.grid(column=0, row=self.grid_matrix, sticky="we", padx=10, pady=30 , columnspan=1, rowspan=2)
+        self.connect_button.grid(column=0, row=self.grid_matrix, sticky="we", padx=10, pady=30 , columnspan=2, rowspan=2)
         
 
-        # Slider for period
-
-
-
-        self.sms_periodic_value_slider = customtkinter.CTkSlider(master=self.window, from_= 500, to= 700, command=self.periodic_slider_event)
-        self.sms_periodic_value_slider.grid(column=1, row=self.grid_matrix, sticky="we", padx=10, pady=30 , columnspan=1, rowspan=2)
 
 
         self.grid_matrix += 2 # Go next line
@@ -443,11 +448,11 @@ class SafetyDemoGui():
 
                                 #process_values!
                                 if self.use_true_smu_values:
-                                    self.SMU_values["freq"] = 20
-                                    self.SMU_values["duty_cycle"] = 50
+                                    self.SMU_values["freq"] = 20 + randint(-3,10)/1000
+                                    self.SMU_values["duty_cycle"] = 50 + randint(-10,10)/1000
                                 else:
-                                    self.SMU_values["freq"] = 20 + random.randint(-10,10)
-                                    self.SMU_values["duty_cycle"] = 50 + random.randint(-10,10)
+                                    self.SMU_values["freq"] = 20 + random.randint(-10,10)/100
+                                    self.SMU_values["duty_cycle"] = 50 + random.randint(-10,10)/100
                             else:
                                 print("ERROR: No data in VALUE_UPDATE event")
 
