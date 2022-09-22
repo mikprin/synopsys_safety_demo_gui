@@ -174,14 +174,14 @@ class SafetyDemoGui():
 
 
         self.pattern_definition_dict = [
-                                    {"name":"Connectivity check", "index":0, "reset":True  , "group" : None , "visible" : True },
-                                    {"name":"FBIST"             , "index":1, "reset":True  , "group" : None , "visible" : True },
-                                    {"name":"BIST"              , "index":2, "reset":True  , "group" : None , "visible" : True },
-                                    {"name":"XLBIST"            , "index":3, "reset":True  , "group" : None , "visible" : True },
-                                    {"name":"smu count"         , "index":4, "reset":True  , "group" : None , "visible" : True },
-                                    {"name":"ECC_init"          , "index":5, "reset":False , "group" : None , "visible" : True },
-                                    {"name":"Ecc_test"          , "index":6, "reset":False , "group" : None , "visible" : False},
-                                    {"name":"ECC read WDR"      , "index":7, "reset":False , "group" : None , "visible" : True }
+                                    {"name":"Connectivity check"        , "index":0, "reset":True  , "group" : None , "visible" : True },
+                                    {"name":"Memory transparent BIST"   , "index":1, "reset":True  , "group" : None , "visible" : True },
+                                    {"name":"Memory BIST"               , "index":2, "reset":True  , "group" : None , "visible" : True },
+                                    {"name":"XLBIST Logic test"         , "index":3, "reset":True  , "group" : None , "visible" : True },
+                                    {"name":"smu count"                 , "index":4, "reset":True  , "group" : None , "visible" : True },
+                                    {"name":"ECC_init"                  , "index":5, "reset":False , "group" : None , "visible" : True },
+                                    {"name":"Ecc_test"                  , "index":6, "reset":False , "group" : None , "visible" : False},
+                                    {"name":"ECC read WDR"              , "index":7, "reset":False , "group" : None , "visible" : True }
                                     ]
         self.patterns = []
         for pattern_def in self.pattern_definition_dict:
@@ -392,7 +392,7 @@ class SafetyDemoGui():
                 self.update_pattern_status(event)
 
         if self.board_loop:
-            self.power_button.configure(text="KEY OFF", fg_color="green")
+            self.power_button.configure(text="KEY ON", fg_color="green")
         else:
             self.power_button.configure(text="KEY ON", fg_color="grey")
         

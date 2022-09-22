@@ -11,6 +11,11 @@ To install python3 dependencies from attached file, run:
     `pip3 install -r requirements.txt`
 using the `requirements.txt` file in the root of this repository.
 
+
+## Drivers
+
+You need to install CP21xx drivers from [ the link  ( official silicon labs site ) ](https://www.silabs.com/developers/usb-to-uart-bridge-vcp-drivers?tab=downloads)
+
 # Usage
 
 To launch the GUI just run `safety_demo_ctk_gui.py` with your python3.10 installation.
