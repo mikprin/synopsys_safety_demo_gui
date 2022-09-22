@@ -53,6 +53,7 @@ class SafetyDemoGui():
     imag_freq_deviation = 100
 
     pereodic_execution = False
+    timeout_delta = 0.8
 
     # Important! This is the list of events that can be received from the board
     events_dict = { "PATTERN_DONE":"" ,
@@ -170,8 +171,17 @@ class SafetyDemoGui():
         # self.window.columnconfigure(0, weight=1)
 
         self.connect_button = tk.CTkButton(self.window, text ="Connect", command = self.check_ports , height = self.top_button_height , text_font=self.default_font, text_color=self.default_text_color)
-        self.connect_button.grid(column=0, row=self.grid_matrix, sticky="we", padx=10, pady=30 , columnspan=3, rowspan=2)
+        self.connect_button.grid(column=0, row=self.grid_matrix, sticky="we", padx=10, pady=30 , columnspan=1, rowspan=2)
         
+
+        # Slider for period
+
+
+
+        self.sms_periodic_value_slider = customtkinter.CTkSlider(master=self.window, from_= 500, to= 700, command=self.periodic_slider_event)
+        self.sms_periodic_value_slider.grid(column=1, row=self.grid_matrix, sticky="we", padx=10, pady=30 , columnspan=1, rowspan=2)
+
+
         self.grid_matrix += 2 # Go next line
 
 
@@ -187,7 +197,7 @@ class SafetyDemoGui():
         # self.error_injection_button = tk.CTkButton(self.window, text ="Error Injection", command = self.send_blink_command ,  height = self.top_button_height , text_font=self.default_font, text_color=self.default_text_color )
         # self.error_injection_button.grid(column=2, row=self.grid_matrix , padx=10, pady=10 , sticky="we" , columnspan = 1  )
 
-        self.pereodic_execution_button = tk.CTkButton(self.window, text ="Periodic Execution", command = self.pereodic_execution_set, fg_color="grey",  height = self.top_button_height , text_font=self.default_font, text_color=self.default_text_color )
+        self.pereodic_execution_button = tk.CTkButton(self.window, text ="Periodic Test / In-Field Monitoring", command = self.pereodic_execution_set, fg_color="grey",  height = self.top_button_height , text_font=self.default_font, text_color=self.default_text_color )
         self.pereodic_execution_button.grid(column=1, row=self.grid_matrix , padx=10, pady=10 , sticky="we" , columnspan = 1  )
         self.grid_matrix += 1 # Go next line
 
@@ -260,30 +270,11 @@ class SafetyDemoGui():
                                                 # function = lambda: self.run_pattern( pattern_def['index'] )
                                                 ))
             self.grid_matrix += self.patterns[-1].height
+
         # self.grid_matrix += len(self.patterns)
         # for pattern in self.patterns:
         #     self.grid_matrix += pattern.height
     
-        ######################## Add picture to the window ########################
-
-        # Create sqare wave image
-        # self.time_value = 0.1
-        # img_buf = plot_sqare_wave(self.time_value)
-        # Resize image
-
-        # Y_DIV = 1
-        # X_DIV = 1
-        # img_buf = img_buf.resize((int(img_buf.size[0]/X_DIV), int(img_buf.size[1]/Y_DIV)), Image.ANTIALIAS)
-        # tk_plot = ImageTk.PhotoImage(img_buf)
-        # self.label_plot = tk.CTkLabel(image=tk_plot , master=self.window)
-        # self.label_plot.image = tk_plot
-        # self.label_plot.grid(column=0, row=self.grid_matrix , pady=10 , padx=10 , columnspan=2, sticky="w")
-        
-        # self.grid_matrix += 1
-
-        # self.root_window.after(1000, self.update_picture)
-
-
         # Debug window
         # self.serial_status_label = tk.CTkLabel(self.window, text = "Serial Status")
         # self.serial_status_label.grid(column= self.far_right_colomn, row=3, pady=2, padx = 15 , columnspan=2)
@@ -323,6 +314,10 @@ class SafetyDemoGui():
 
     def switch_event(self):
         print("switch toggled, current value:", self.pereodic_switch_var.get())  
+
+
+    def periodic_slider_event(self,value):
+            self.progress_bar_update_speed = int(value)
 
     def pereodic_execution_set(self):
         if self.pereodic_execution:
@@ -578,7 +573,7 @@ class SafetyDemoGui():
                         threading.Thread(target=self.send_pattern_after_timeout, args=(timeout, pattern.pattern_number))
                     )
                     pattern_threads[-1].start()
-                    timeout += 1
+                    timeout += self.timeout_delta
 
     def send_pattern_after_timeout(self, timeout , pattern):
         """Sleep for `timeout` ms and then send pattern to the board."""
@@ -664,10 +659,10 @@ class Pattern_Block:
             self.pattern_button = tk.CTkButton(self.window, text = f"{self.pattern_name}",
                                             command = self.run_pattern,
                                             height = self.default_button_height,
-                                            width = 450 ,
+                                            width = 350,
                                             text_font=self.default_font ,
                                             text_color=self.default_text_color)
-            self.pattern_button.grid(column=self.colomn_couter, row= pattern_number + offset , padx=100, pady= self.pady , sticky="w" , columnspan= 2 )
+            self.pattern_button.grid(column=self.colomn_couter, row= pattern_number + offset , padx=50, pady= self.pady , sticky="we" , columnspan= 1 )
             self.colomn_couter += 1
 
             # Add pattern status
@@ -684,11 +679,12 @@ class Pattern_Block:
 
             self.pattern_result = tk.CTkLabel(self.window, text = self.pattern_result,
                                             height = self.default_button_height ,
-                                            width = 400 , text_color= "white",
+                                            width = 450 ,
+                                            text_color= "white",
                                             text_font=self.default_font)
 
             self.pattern_result.configure(bg_color="grey")
-            self.pattern_result.grid(column=self.colomn_couter, row = pattern_number + offset , padx=50, pady= self.pady  , sticky="e" , columnspan = 1 )
+            self.pattern_result.grid(column=self.colomn_couter, row = pattern_number + offset , padx=50, pady= self.pady  , sticky="we" , columnspan = 1 )
             self.colomn_couter += 1
 
     def run_pattern(self):
