@@ -68,7 +68,7 @@ class SafetyDemoGui():
                     "VALUE_UPDATE":"" }
 
     top_button_height = 50
-    SMU_values = {"smu_0":0, "smu_1":0 , "freq":0 , "duty_cycle":0}
+    SMU_values = {"smu_0":0, "smu_1":0 , "freq":0 , "duty_cycle":0 , "known_frequency":  20000000 }
 
     def __init__(self):
         

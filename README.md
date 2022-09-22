@@ -29,7 +29,23 @@ To see that board was connected all you need is to connect computer USB port wit
 
 Source are presented with `safety_demo_ctk_gui.py` with `SafetyDemoGui` class and `uart_handler` with `UartHandler`.
 
+## Event mechanism
 
+To handle events from the board, we use `UartHandler` class. It is a thread that is constantly reading from the UART port. It is also responsible for sending commands to the board. Messages with `EVENT:` are checked for events and are sent to the `SafetyDemoGui` class. `SafetyDemoGui` class is responsible for handling events and updating the GUI. It is also responsible for sending commands to the `UartHandler` class according to button-specific and pereodic actions.
+
+As of writing this, there are following events that are handled by the `SafetyDemoGui` class:
+```
+    events_dict = { "PATTERN_DONE":"" ,
+                    "STARTED":"" ,
+                    "PATTERN_STOP":"",
+                    "PATTERN_SKIP":"" ,
+                    "BLINK":"" ,
+                    "SMS_RESET":"",
+                    "START_LOOP":"",
+                    "STOP_LOOP":"" ,
+                    "CHECK_LOOP":"",
+                    "VALUE_UPDATE":"" }
+```
 # Known issues
 
 * If too many messages are recived to the board, UartHandler will split it into 2 readings and event line might be split in half. You can overcome this issue by not dfining `DEBUG_PRINTS` in `main.c` file of the firmware to limit the number of prints.
