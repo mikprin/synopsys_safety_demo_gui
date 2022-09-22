@@ -1,54 +1,118 @@
+# Tkinter imports
+from email.policy import default
 import tkinter
+from tkinter import font
 import numpy as np
 import customtkinter as tk
 import customtkinter
 # from customtkinter.font_manager import BOLD, Font
 
-
+# System
 import threading
-import time, os, sys, io , re
+import time, os, sys, io , re , traceback, logging
 import matplotlib.pyplot as plt
 
 # Imports to work with serial port
 import serial
 import serial.tools.list_ports
 
+# Imports to work with images
 from PIL import ImageTk, Image 
 
 from apscheduler.schedulers.blocking import BlockingScheduler
-from functools import partial
-# My own files
-import uart_handler
 
-from color_gradient import ColorGradient
+# My own files
+import uart_handler # Create a class to handle the UART
+from color_gradient import ColorGradient # Create a class to handle the Color Gradient
+from conf import * # Import configuration class
+
 
 tk.set_appearance_mode("dark")
 
 
 class SafetyDemoGui():
 
+    # Default settings
     board_connected = False
     progress_bar_update_speed = 500
     buttons_fading_speed = 300
     left_window_width = 300
-
+    use_true_smu_values = False
     board_product_name = "CP2108 Quad USB to UART Bridge Controller"
     board_pattern = ".*Silicon Labs Quad CP2108 USB to UART Bridge: Interface 0.*"
 
+    default_font = ("Arial", 19)
+    # default_text_color = "#ffe000"
+    default_text_color = "white"
+
+    yellowish_color = "#eee5b0"
+
+    print_debug_info = False
+
+    imag_freq = 20
+    imag_freq_deviation = 100
+
+    pereodic_execution = False
+
     # Important! This is the list of events that can be received from the board
-    events_dict = { "PATTERN_DONE":"" , "STARTED":"" ,  "PATTERN_STOP":"", "PATTERN_SKIP":"" , "BLINK":"" , "SMS_RESET":"" , "START_LOOP":"", "STOP_LOOP":"" , "CHECK_LOOP":"" }
+    events_dict = { "PATTERN_DONE":"" ,
+                    "STARTED":"" ,
+                    "PATTERN_STOP":"",
+                    "PATTERN_SKIP":"" ,
+                    "BLINK":"" ,
+                    "SMS_RESET":"",
+                    "START_LOOP":"",
+                    "STOP_LOOP":"" ,
+                    "CHECK_LOOP":"",
+                    "VALUE_UPDATE":"" }
 
     top_button_height = 50
+    SMU_values = {"smu_0":0, "smu_1":0 , "freq":0 , "duty_cycle":0}
 
     def __init__(self):
-        self.root_window = self.create_window()
+        
         self.uart = None
-        self.root_window.protocol("WM_DELETE_WINDOW", self.on_closing)  # call .on_closing() when app gets closed
         # Make temp directory if doesn't exist
         self.this_file_path = os.path.abspath(os.path.dirname(__file__))
         tempdir = os.path.join( self.this_file_path , "..","temp")  
         if not os.path.exists(tempdir):
             os.makedirs(tempdir)
+
+        # self.config = {}
+        config_path = os.path.join( self.this_file_path , "..","config.ini")
+        if os.path.exists(config_path):
+            self.config = Config(config_path)
+            # Config definitions:
+            if self.config.get("GUI", "left_window_width"):
+                self.left_window_width = int(self.config.get("GUI", "left_window_width"))
+            if self.config.get("GUI", "progress_bar_update_period"):
+                self.progress_bar_update_speed = int(self.config.get("GUI", "progress_bar_update_period"))
+                # print("progress_bar_update_speed ", self.progress_bar_update_speed)
+            if self.config.get("GUI", "buttons_fading_speed"):
+                self.buttons_fading_speed = int(self.config.get("GUI", "buttons_fading_speed"))
+            if self.config.get("GUI", "use_true_smu_values"):
+                self.use_true_smu_values = self.config.get("GUI", "use_true_smu_values")
+            if self.config.get("GUI", "appearance_mode"):
+                self.appearance_mode = self.config.get("GUI", "appearance_mode")
+                print(f"Setting appearance_mode: {self.appearance_mode}")
+                tk.set_appearance_mode(self.appearance_mode)
+            if self.config.get("GUI", "print_debug_info"):
+                self.print_debug_info = bool(self.config.get("GUI", "print_debug_info"))
+
+            color = self.config.get("GUI", "default_text_color")
+            if color:
+                if color == "yellow":
+                    self.default_text_color = "#ffe000"
+                else:
+                    self.default_text_color = "white"
+        else:
+            print("ERROR: Config file not found")
+        
+        # Create the window
+        self.root_window = self.create_window()
+
+        self.root_window.protocol("WM_DELETE_WINDOW", self.on_closing)  # call .on_closing() when app gets closed
+        
 
 
         self.board_loop = False # Here I store if board main function is in the loop or not. If not we need to send S to start it
@@ -105,45 +169,44 @@ class SafetyDemoGui():
         self.grid_matrix = 0 # Matrix to procedurally generate vertical widgets
         # self.window.columnconfigure(0, weight=1)
 
-        self.connect_button = tk.CTkButton(self.window, text ="Connect", command = self.check_ports , height = self.top_button_height)
-        self.connect_button.grid(column=0, row=self.grid_matrix, sticky="we", padx=10, pady=10 , columnspan=3, rowspan=2)
+        self.connect_button = tk.CTkButton(self.window, text ="Connect", command = self.check_ports , height = self.top_button_height , text_font=self.default_font, text_color=self.default_text_color)
+        self.connect_button.grid(column=0, row=self.grid_matrix, sticky="we", padx=10, pady=30 , columnspan=3, rowspan=2)
         
         self.grid_matrix += 2 # Go next line
-
-
-        # self.change_connection_status_button = tk.CTkButton(self.window, text ="Change Connection Status", command = self.change_connection_status)
-        # self.change_connection_status_button.grid(column=0, row=1 , padx=10, pady=10, sticky="nsew")
-        
 
 
         
         # Add blink button
 
-        self.power_button = tk.CTkButton(self.window, text ="KEY ON", command = self.send_start_command ,  height = self.top_button_height ) 
-        self.power_button.grid(column=0, row=self.grid_matrix , padx=10, pady=10 , sticky="we" , columnspan = 2  )
+        self.power_button = tk.CTkButton(self.window, text ="KEY ON", command = self.send_start_command ,  height = self.top_button_height , text_font=self.default_font, text_color=self.default_text_color ) 
+        self.power_button.grid(column=0, row=self.grid_matrix , padx=10, pady=10 , sticky="we" , columnspan = 1  )
         
 
         # Add error injection button
 
-        self.error_injection_button = tk.CTkButton(self.window, text ="Error Injection", command = self.send_blink_command ,  height = self.top_button_height )
-        self.error_injection_button.grid(column=2, row=self.grid_matrix , padx=10, pady=10 , sticky="we" , columnspan = 1  )
+        # self.error_injection_button = tk.CTkButton(self.window, text ="Error Injection", command = self.send_blink_command ,  height = self.top_button_height , text_font=self.default_font, text_color=self.default_text_color )
+        # self.error_injection_button.grid(column=2, row=self.grid_matrix , padx=10, pady=10 , sticky="we" , columnspan = 1  )
 
+        self.pereodic_execution_button = tk.CTkButton(self.window, text ="Periodic Execution", command = self.pereodic_execution_set, fg_color="grey",  height = self.top_button_height , text_font=self.default_font, text_color=self.default_text_color )
+        self.pereodic_execution_button.grid(column=1, row=self.grid_matrix , padx=10, pady=10 , sticky="we" , columnspan = 1  )
         self.grid_matrix += 1 # Go next line
 
         # Add reset button
-        self.reset_button = tk.CTkButton(self.window, text ="Reset", command = self.send_reset_command , height = self.top_button_height )
-        self.reset_button.grid(column=0, row=self.grid_matrix , padx=10, pady=10 , sticky="we" , columnspan = 1  )
+        # self.reset_button = tk.CTkButton(self.window, text ="Reset", command = self.send_reset_command , height = self.top_button_height , text_font=self.default_font, text_color=self.default_text_color )
+        # self.reset_button.grid(column=0, row=self.grid_matrix , padx=10, pady=10 , sticky="we" , columnspan = 1  )
         
 
         # Add pereodic switch slider
         self.pereodic_switch_var = customtkinter.StringVar(value="off")
-        pereodic_switch = customtkinter.CTkSwitch(master=self.window, text="Pereodic execution", command=self.switch_event,
-                                        variable=self.pereodic_switch_var, onvalue="on", offvalue="off")
-        pereodic_switch.grid(column=2, row=self.grid_matrix , padx=10, pady=10 , sticky="we" , columnspan = 1  )
+        # pereodic_switch = customtkinter.CTkSwitch(master=self.window, text="Pereodic execution",
+        #                                 command=self.switch_event,
+        #                                 text_font=self.default_font,
+        #                                 variable=self.pereodic_switch_var, onvalue="on", offvalue="off")
+        # pereodic_switch.grid(column=2, row=self.grid_matrix , padx=10, pady=10 , sticky="we" , columnspan = 1  )
 
         # Add demo progress bar
-        self.progress_bar = tk.CTkProgressBar(self.window, width=200, height=20)
-        self.progress_bar.grid(column=1, row=self.grid_matrix, sticky="we", padx=10, pady=10, columnspan=1)
+        # self.progress_bar = tk.CTkProgressBar(self.window, width=200, height=20)
+        # self.progress_bar.grid(column=1, row=self.grid_matrix, sticky="we", padx=10, pady=10, columnspan=1)
         
         self.progress_bar_value = 0
         self.update_progress_bar_value()
@@ -174,14 +237,14 @@ class SafetyDemoGui():
 
 
         self.pattern_definition_dict = [
-                                    {"name":"Connectivity check"        , "index":0, "reset":True  , "group" : None , "visible" : True },
-                                    {"name":"Memory transparent BIST"   , "index":1, "reset":True  , "group" : None , "visible" : True },
-                                    {"name":"Memory BIST"               , "index":2, "reset":True  , "group" : None , "visible" : True },
-                                    {"name":"XLBIST Logic test"         , "index":3, "reset":True  , "group" : None , "visible" : True },
-                                    {"name":"smu count"                 , "index":4, "reset":True  , "group" : None , "visible" : True },
-                                    {"name":"ECC_init"                  , "index":5, "reset":False , "group" : None , "visible" : True },
-                                    {"name":"Ecc_test"                  , "index":6, "reset":False , "group" : None , "visible" : False},
-                                    {"name":"ECC read WDR"              , "index":7, "reset":False , "group" : None , "visible" : True }
+                                    {"name":"Connectivity check"            , "index":0, "reset":True  , "type" : None , "visible" : True },
+                                    {"name":"Memory transparent BIST SMS"   , "index":1, "reset":True  , "type" : None , "visible" : True },
+                                    {"name":"Memory BIST SMS"               , "index":2, "reset":True  , "type" : None , "visible" : True },
+                                    {"name":"Logic test XLBIST"             , "index":3, "reset":True  , "type" : None , "visible" : True },
+                                    {"name":"System Clock freq / Duty cycle", "index":4, "reset":True  , "type" : "SMU", "visible" : True },
+                                    {"name":"ECC configure"                 , "index":5, "reset":False , "type" : None , "visible" : True },
+                                    {"name":"Ecc_test"                      , "index":6, "reset":False , "type" : None , "visible" : False},
+                                    {"name":"ECC Check"                     , "index":7, "reset":False , "type" : None , "visible" : True }
                                     ]
         self.patterns = []
         for pattern_def in self.pattern_definition_dict:
@@ -190,8 +253,10 @@ class SafetyDemoGui():
                                                 pattern_def["index"],
                                                 reset = pattern_def["reset"],
                                                 offset = self.grid_matrix,
-                                                group = pattern_def["group"],
-                                                visible = pattern_def["visible"]
+                                                type = pattern_def["type"],
+                                                visible = pattern_def["visible"],
+                                                default_font=self.default_font,
+                                                default_text_color=self.default_text_color,
                                                 # function = lambda: self.run_pattern( pattern_def['index'] )
                                                 ))
             self.grid_matrix += self.patterns[-1].height
@@ -248,6 +313,9 @@ class SafetyDemoGui():
         self.root_window.mainloop()
         
 
+    # def get_config_value(self, section, key):
+    #     if 
+
     def create_window(self):
         window = tk.CTk()
         window.title("Synopsys demontration safety GUI app")
@@ -256,10 +324,22 @@ class SafetyDemoGui():
     def switch_event(self):
         print("switch toggled, current value:", self.pereodic_switch_var.get())  
 
+    def pereodic_execution_set(self):
+        if self.pereodic_execution:
+            self.pereodic_execution = False
+            self.pereodic_execution_button.configure( fg_color = "grey" )
+            # self.pereod
+            # self.pereodic_switch_var.set("off")
+        else:
+            self.pereodic_execution = True
+            self.progress_bar_value = 0.5
+            self.pereodic_execution_button.configure( fg_color = "green" )
+            # self.pereodic_switch_var.set("on")
+
+
     def board_connect(self):
-        # self.
         self.board_connected = True
-        self.connect_button.configure(text="Connected" , fg_color="green")
+        self.connect_button.configure(text="Connected" , fg_color=self.yellowish_color, text_color="black")
 
     def board_disconnect(self):
         if self.uart:
@@ -267,7 +347,7 @@ class SafetyDemoGui():
                 del(self.uart)
                 self.uart = None
         self.board_connected = False
-        self.connect_button.configure(text="Not Connected", fg_color="red")
+        self.connect_button.configure(text="Not Connected", fg_color="red", text_color="white")
     
     def send_blink_command(self):
         if self.board_connected:
@@ -363,12 +443,32 @@ class SafetyDemoGui():
                         if event.event_type == "PATTERN_DONE":
                             events_to_process.append(event)
 
+                        # EVENT VALUE_UPDATE -> What to do if SMU sent new value
+
+                        elif event.event_type == "VALUE_UPDATE":
+                            if event.dict_data:
+                                self.SMU_values["smu_0"] = event.dict_data["smu_0"]
+                                self.SMU_values["smu_1"] = event.dict_data["smu_1"]
+
+                                #process_values!
+
+                                if self.use_true_smu_values:
+                                    self.SMU_values["freq"] = 20
+                                    self.SMU_values["duty_cycle"] = 50
+                                else:
+                                    self.SMU_values["freq"] = 20
+                                    self.SMU_values["duty_cycle"] = 50
+                            else:
+                                print("ERROR: No data in VALUE_UPDATE event")
+
                         # EVENT CHECK_LOOP -> Checks c
                         elif event.event_type == "CHECK_LOOP":
                             if event.dict_data:
-                                self.board_loop = bool(event.dict_data["status"]) 
+                                self.board_loop = bool(event.dict_data["status"])
+                            else:
+                                print("ERROR: No data in CHECK_LOOP event")
+                                
                         # EVENT INNER LOOP START
-                        
                         elif event.event_type == "START_LOOP":
                             self.board_loop = True
 
@@ -417,7 +517,12 @@ class SafetyDemoGui():
             self.patterns[pattern_index].status = pattern_result
 
             if self.patterns[pattern_index].visible:
-                self.patterns[pattern_index].pattern_result.configure(text=pattern_result)
+
+                if self.patterns[pattern_index].type == "SMU":
+                    self.patterns[pattern_index].pattern_result.configure(text=f"{self.SMU_values['freq']} MHz, {self.SMU_values['duty_cycle']} %")
+                    # self.patterns[pattern_index].pattern_result.configure(text=pattern_result)
+                else:
+                    self.patterns[pattern_index].pattern_result.configure(text=pattern_result)
                 self.patterns[pattern_index].pattern_result.configure(fg_color="green" if pattern_result == "PASSED" else "red")
                 if pattern_result == "PASSED":
                     self.patterns[pattern_index].color_gradient = ColorGradient( mode = "green_to_grey")
@@ -451,14 +556,14 @@ class SafetyDemoGui():
 
     
     def update_progress_bar_value(self):
-        if self.pereodic_switch_var.get() == "on": 
+        if self.pereodic_execution: 
             if self.progress_bar_value >= 1:
                 self.run_all_tests()
 
             if self.progress_bar_value >= 1:
                 self.progress_bar_value = 0
-            self.progress_bar_value = self.progress_bar_value + 0.05
-            self.progress_bar.set (value=self.progress_bar_value)
+            self.progress_bar_value = self.progress_bar_value + 0.07
+            # self.progress_bar.set (value=self.progress_bar_value)
             # print(f"Progress bar value: {self.progress_bar_value}")
         self.root_window.after(self.progress_bar_update_speed, self.update_progress_bar_value)
 
@@ -467,7 +572,8 @@ class SafetyDemoGui():
         timeout = 0
         pattern_threads = []
         for pattern in self.patterns:
-                    print(f"Starting thread for pattern {pattern.pattern_name} with delay {timeout}")
+                    if self.print_debug_info:
+                        print(f"Starting thread for pattern {pattern.pattern_name} with delay {timeout}")
                     pattern_threads.append(
                         threading.Thread(target=self.send_pattern_after_timeout, args=(timeout, pattern.pattern_number))
                     )
@@ -514,16 +620,34 @@ class SafetyDemoGui():
                 self.uart.send(str.encode("e"))
         self.error_injection_button.configure(fg_color="red")
 
+
+
+
+
+
+
+
 class Pattern_Block:
-    default_button_height = 40
+    default_button_height = 50
     pady = 10
 
-    def __init__(self, window, pattern_name, pattern_number , reset = False , offset = 0 , function = None , visible = True , group = None):
+    def __init__(self, window, pattern_name, pattern_number,
+                reset = False,
+                offset = 0,
+                function = None,
+                visible = True ,
+                type = None,
+                default_font = ("Arial", 21),
+                default_text_color = "#ffe000",
+                default_button_color = "#ffe000"):
         self.height = 1
         self.colomn_couter = 0
+        self.default_text_color = default_text_color 
+        self.default_font = default_font
         self.window = window
         self.function = function
         self.reset = reset
+        self.type = type
         self.visible = visible
         self.pattern_name = pattern_name
         self.pattern_number = pattern_number
@@ -536,9 +660,14 @@ class Pattern_Block:
         # self.pattern_label 
 
         if self.visible:
-            # ADd pattern button
-            self.pattern_button = tk.CTkButton(self.window, text = f"{self.pattern_name}", command = self.run_pattern , height = self.default_button_height , width = 300)
-            self.pattern_button.grid(column=self.colomn_couter, row= pattern_number + offset , padx=10, pady= self.pady , sticky="w" , columnspan= 2 )
+            # Add pattern button
+            self.pattern_button = tk.CTkButton(self.window, text = f"{self.pattern_name}",
+                                            command = self.run_pattern,
+                                            height = self.default_button_height,
+                                            width = 450 ,
+                                            text_font=self.default_font ,
+                                            text_color=self.default_text_color)
+            self.pattern_button.grid(column=self.colomn_couter, row= pattern_number + offset , padx=100, pady= self.pady , sticky="w" , columnspan= 2 )
             self.colomn_couter += 1
 
             # Add pattern status
@@ -549,14 +678,17 @@ class Pattern_Block:
 
             # Add pattern result
 
-            self.pattern_result = tk.CTkLabel(self.window, text = self.pattern_result , height = self.default_button_height , width = 300)
-            # if self.pattern_result == "Pass":
-            #     self.pattern_result.configure(bg_color="green")
-            # elif self.pattern_result == "Fail":
-            #     self.pattern_result.configure(bg_color="red")
-            # else:
+            if self.type == "SMU":
+                self.frequency = 0
+                self.duty_cycle = 50
+
+            self.pattern_result = tk.CTkLabel(self.window, text = self.pattern_result,
+                                            height = self.default_button_height ,
+                                            width = 400 , text_color= "white",
+                                            text_font=self.default_font)
+
             self.pattern_result.configure(bg_color="grey")
-            self.pattern_result.grid(column=self.colomn_couter, row= pattern_number + offset , padx=5, pady= self.pady  , sticky="e" , columnspan = 1 )
+            self.pattern_result.grid(column=self.colomn_couter, row = pattern_number + offset , padx=50, pady= self.pady  , sticky="e" , columnspan = 1 )
             self.colomn_couter += 1
 
     def run_pattern(self):

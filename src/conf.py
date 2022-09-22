@@ -12,7 +12,11 @@ class Config:
 
 
     def get(self, section, key):
-        return self.config[section][key]
+        try:
+            return self.config[section][key]
+        except KeyError:
+            return None
+        # return self.config[section][key]
 
     def set(self, section, key, value):
         self.config[section][key] = value

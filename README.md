@@ -30,6 +30,12 @@ To see that board was connected all you need is to connect computer USB port wit
 Source are presented with `safety_demo_ctk_gui.py` with `SafetyDemoGui` class and `uart_handler` with `UartHandler`.
 
 
+# Known issues
+
+* If too many messages are recived to the board, UartHandler will split it into 2 readings and event line might be split in half. You can overcome this issue by not dfining `DEBUG_PRINTS` in `main.c` file of the firmware to limit the number of prints.
+* If you are using Windows, you might need to install [this](https://www.silabs.com/developers/usb-to-uart-bridge-vcp-drivers?tab=downloads) driver to make the board work.
+
+
 # Regarding serial communication:
 
 Just some links for me:

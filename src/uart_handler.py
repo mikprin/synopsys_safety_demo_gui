@@ -2,6 +2,9 @@ from re import S
 import time
 import serial
 import threading
+import traceback
+import logging
+
 
 class UartHandler:
     def __init__(self, port, baudrate , events_dict = {}, timeout = 0.5):
@@ -11,6 +14,12 @@ class UartHandler:
         self.timeout = timeout
         self.events_dict = events_dict
         self.serial = serial.Serial(port, baudrate, timeout=self.timeout)
+        # try:
+        #     self.serial = serial.Serial(port, baudrate, timeout=self.timeout)
+        # except Exception as e:
+        #     print(f"Could not open serial port:")
+        #     print(e)
+        #     self.serial = None
         # self.serial.open()
         
         self.quene_mutex = threading.Lock()
@@ -105,6 +114,8 @@ class UartHandler:
             print("Read thread is alive")
 
     def close(self):
+        # if self.serial:
+        #     self.serial.close()
         self.serial.close()
 
     def clear_quene(self):
