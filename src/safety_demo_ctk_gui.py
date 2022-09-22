@@ -1,5 +1,6 @@
 # Tkinter imports
 from email.policy import default
+from random import random
 import tkinter
 from tkinter import font
 import numpy as np
@@ -92,7 +93,7 @@ class SafetyDemoGui():
             if self.config.get("GUI", "buttons_fading_speed"):
                 self.buttons_fading_speed = int(self.config.get("GUI", "buttons_fading_speed"))
             if self.config.get("GUI", "use_true_smu_values"):
-                self.use_true_smu_values = self.config.get("GUI", "use_true_smu_values")
+                self.use_true_smu_values = bool(self.config.get("GUI", "use_true_smu_values"))
             if self.config.get("GUI", "appearance_mode"):
                 self.appearance_mode = self.config.get("GUI", "appearance_mode")
                 print(f"Setting appearance_mode: {self.appearance_mode}")
@@ -207,7 +208,7 @@ class SafetyDemoGui():
         
 
         # Add pereodic switch slider
-        self.pereodic_switch_var = customtkinter.StringVar(value="off")
+        self.pereodic_switch_var = customtkinter.StringVar(value="off") # Don't use it. Don/t know if it is needed
         # pereodic_switch = customtkinter.CTkSwitch(master=self.window, text="Pereodic execution",
         #                                 command=self.switch_event,
         #                                 text_font=self.default_font,
@@ -323,13 +324,12 @@ class SafetyDemoGui():
         if self.pereodic_execution:
             self.pereodic_execution = False
             self.pereodic_execution_button.configure( fg_color = "grey" )
-            # self.pereod
-            # self.pereodic_switch_var.set("off")
+
         else:
             self.pereodic_execution = True
             self.progress_bar_value = 0.5
             self.pereodic_execution_button.configure( fg_color = "green" )
-            # self.pereodic_switch_var.set("on")
+
 
 
     def board_connect(self):
@@ -399,10 +399,6 @@ class SafetyDemoGui():
                         self.board_disconnect()
                         return False
                     return True
-                # for port in ports:
-                #     if port.product == self.board_product_name:
-                #         self.board_connect()
-                #         return True
             self.board_disconnect()
             return False
         else:
@@ -446,13 +442,12 @@ class SafetyDemoGui():
                                 self.SMU_values["smu_1"] = event.dict_data["smu_1"]
 
                                 #process_values!
-
                                 if self.use_true_smu_values:
                                     self.SMU_values["freq"] = 20
                                     self.SMU_values["duty_cycle"] = 50
                                 else:
-                                    self.SMU_values["freq"] = 20
-                                    self.SMU_values["duty_cycle"] = 50
+                                    self.SMU_values["freq"] = 20 + random.randint(-10,10)
+                                    self.SMU_values["duty_cycle"] = 50 + random.randint(-10,10)
                             else:
                                 print("ERROR: No data in VALUE_UPDATE event")
 
@@ -659,10 +654,10 @@ class Pattern_Block:
             self.pattern_button = tk.CTkButton(self.window, text = f"{self.pattern_name}",
                                             command = self.run_pattern,
                                             height = self.default_button_height,
-                                            width = 350,
+                                            width = 420,
                                             text_font=self.default_font ,
                                             text_color=self.default_text_color)
-            self.pattern_button.grid(column=self.colomn_couter, row= pattern_number + offset , padx=50, pady= self.pady , sticky="we" , columnspan= 1 )
+            self.pattern_button.grid(column=self.colomn_couter, row= pattern_number + offset , padx=50, pady= self.pady , sticky="e" , columnspan= 1 )
             self.colomn_couter += 1
 
             # Add pattern status
@@ -684,7 +679,7 @@ class Pattern_Block:
                                             text_font=self.default_font)
 
             self.pattern_result.configure(bg_color="grey")
-            self.pattern_result.grid(column=self.colomn_couter, row = pattern_number + offset , padx=50, pady= self.pady  , sticky="we" , columnspan = 1 )
+            self.pattern_result.grid(column=self.colomn_couter, row = pattern_number + offset , padx=50, pady= self.pady  , sticky="w" , columnspan = 1 )
             self.colomn_couter += 1
 
     def run_pattern(self):
