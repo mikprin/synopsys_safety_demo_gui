@@ -190,7 +190,7 @@ class SafetyDemoGui():
         # Add blink button
 
         self.power_button = tk.CTkButton(self.window, text ="KEY ON", command = self.send_start_command ,  height = self.top_button_height , text_font=self.default_font, text_color=self.default_text_color ) 
-        self.power_button.grid(column=0, row=self.grid_matrix , padx=10, pady=10 , sticky="we" , columnspan = 1  )
+        self.power_button.grid(column=0, row=self.grid_matrix , padx=10, pady= 30 , sticky="we" , columnspan = 1  )
         
 
         # Add error injection button
@@ -199,7 +199,7 @@ class SafetyDemoGui():
         # self.error_injection_button.grid(column=2, row=self.grid_matrix , padx=10, pady=10 , sticky="we" , columnspan = 1  )
 
         self.pereodic_execution_button = tk.CTkButton(self.window, text ="Periodic Test / In-Field Monitoring", command = self.pereodic_execution_set, fg_color="grey",  height = self.top_button_height , text_font=self.default_font, text_color=self.default_text_color )
-        self.pereodic_execution_button.grid(column=1, row=self.grid_matrix , padx=10, pady=10 , sticky="we" , columnspan = 1  )
+        self.pereodic_execution_button.grid(column=1, row=self.grid_matrix , padx=10, pady= 30 , sticky="we" , columnspan = 1  )
         self.grid_matrix += 1 # Go next line
 
         # Add reset button
@@ -657,7 +657,7 @@ class Pattern_Block:
                                             width = 420,
                                             text_font=self.default_font ,
                                             text_color=self.default_text_color)
-            self.pattern_button.grid(column=self.colomn_couter, row= pattern_number + offset , padx=50, pady= self.pady , sticky="e" , columnspan= 1 )
+            self.pattern_button.grid(column=self.colomn_couter, row= pattern_number + offset , padx = 80, pady= self.pady , sticky="e" , columnspan= 1 )
             self.colomn_couter += 1
 
             # Add pattern status
@@ -679,7 +679,7 @@ class Pattern_Block:
                                             text_font=self.default_font)
 
             self.pattern_result.configure(bg_color="grey")
-            self.pattern_result.grid(column=self.colomn_couter, row = pattern_number + offset , padx=50, pady= self.pady  , sticky="w" , columnspan = 1 )
+            self.pattern_result.grid(column=self.colomn_couter, row = pattern_number + offset , padx = 80, pady= self.pady  , sticky="w" , columnspan = 1 )
             self.colomn_couter += 1
 
     def run_pattern(self):
