@@ -29,7 +29,7 @@ class SafetyDemoGui():
 
     board_connected = False
     progress_bar_update_speed = 500
-
+    buttons_fading_speed = 300
     left_window_width = 300
 
     board_product_name = "CP2108 Quad USB to UART Bridge Controller"
@@ -67,7 +67,7 @@ class SafetyDemoGui():
         self.root_window.grid_rowconfigure(0, weight=1)
 
         self.frame_left = tk.CTkFrame(master=self.root_window,
-                                                 width=400,
+                                                 width= self.left_window_width,
                                                  corner_radius=0)
         self.frame_left.grid(row=0, column=0, sticky="nswe")
         self.frame_left.grid_propagate(0)
@@ -401,7 +401,7 @@ class SafetyDemoGui():
     def update_gui(self):
         for pattern in self.patterns:
             pattern.update_gui()
-        self.root_window.after(300, self.update_gui)
+        self.root_window.after(self.buttons_fading_speed, self.update_gui)
 
 
     def update_pattern_status(self,event):
