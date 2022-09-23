@@ -70,7 +70,7 @@ class SafetyDemoGui():
                     "VALUE_UPDATE":"" }
 
     top_button_height = 50
-    SMU_values = {"smu_0":0, "smu_1":0 , "freq":0 , "duty_cycle":0 , "known_frequency":  20000000 }
+    SMU_values = {"smu_0":0, "smu_1":0 , "freq":0 , "duty_cycle":0 , "known_frequency":  6.25e6 }
 
     def __init__(self):
         
@@ -332,7 +332,7 @@ class SafetyDemoGui():
 
         else:
             self.pereodic_execution = True
-            self.progress_bar_value = 0.5
+            self.progress_bar_value = 0.8
             self.pereodic_execution_button.configure( fg_color = "green" )
 
 
@@ -448,7 +448,7 @@ class SafetyDemoGui():
 
                                 #process_values!
                                 if self.use_true_smu_values:
-                                    self.SMU_values["freq"] = 20 + randint(-3,10)/1000
+                                    self.SMU_values["freq"] = (int(self.SMU_values["smu_0"])/int(self.SMU_values["smu_1"])) * self.SMU_values["known_frequency"]
                                     self.SMU_values["duty_cycle"] = 50 + randint(-10,10)/1000
                                 else:
                                     self.SMU_values["freq"] = 20 + random.randint(-10,10)/100
@@ -514,7 +514,7 @@ class SafetyDemoGui():
             if self.patterns[pattern_index].visible:
 
                 if self.patterns[pattern_index].type == "SMU":
-                    self.patterns[pattern_index].pattern_result.configure(text=f"{self.SMU_values['freq']} MHz, {self.SMU_values['duty_cycle']} %")
+                    self.patterns[pattern_index].pattern_result.configure(text=f"{(self.SMU_values['freq'])/1e6:.2f} MHz, {self.SMU_values['duty_cycle']} %")
                     # self.patterns[pattern_index].pattern_result.configure(text=pattern_result)
                 else:
                     self.patterns[pattern_index].pattern_result.configure(text=pattern_result)
