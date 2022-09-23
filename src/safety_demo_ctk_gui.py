@@ -146,14 +146,29 @@ class SafetyDemoGui():
         self.window = tk.CTkFrame(master=self.root_window, corner_radius=0)
         self.window.grid(row=0, column=1, sticky="nswe", padx=20, pady=20)
   
+        #Get the current screen width and height
+        self.screen_width = self.window.winfo_screenwidth()
+        self.screen_height = self.window.winfo_screenheight()
+
+        print("Screen width: ", self.screen_width)
+        print("Screen height: ", self.screen_height)
+        
+
+
         # ============ create left frame  ============
 
         # Synopsys logo image
         
         synopsys_logo_img = Image.open( os.path.join ( self.this_file_path, "..", "img" , "Synopsys_Logo.png")) # USE ABSOLUTE PATH TODO
         
+        
+
         logo_width, logo_height = synopsys_logo_img.size
-        synopsys_logo_img = synopsys_logo_img.resize((int(logo_width/4), int(logo_height/4)), Image.ANTIALIAS)
+
+        x_scale_factor = int(logo_width/4) * int(self.screen_width/1920)
+        y_scale_factor = int(logo_height/4) * int(self.screen_height/1080)
+
+        synopsys_logo_img = synopsys_logo_img.resize( (x_scale_factor, y_scale_factor), Image.ANTIALIAS)
         synopsys_logo_tk = ImageTk.PhotoImage(synopsys_logo_img)
         label1 = tk.CTkLabel(image=synopsys_logo_tk , master=self.frame_left)
         label1.image = synopsys_logo_tk
@@ -168,7 +183,7 @@ class SafetyDemoGui():
         self.label_period = tk.CTkLabel(text="Period (ms)", master=self.frame_left)
         self.label_period.grid(column= self.far_right_colomn, row=3 , pady=10 , padx=10 , sticky="n")
         self.sms_periodic_value_slider = customtkinter.CTkSlider(master=self.frame_left, from_= 500, to= 700, command=self.periodic_slider_event)
-        self.sms_periodic_value_slider.grid(column=0, row=4, sticky="s", padx=10, pady=10 , columnspan=1, rowspan=1)
+        self.sms_periodic_value_slider.grid(column=0, row=4, sticky="wes", padx=10, pady=10 , columnspan=1, rowspan=1)
 
 
         # ============ create frame_right grid ============
