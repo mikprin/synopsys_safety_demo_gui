@@ -2,6 +2,7 @@
 from email.policy import default
 from random import random
 from random import randint
+import random
 import tkinter
 from tkinter import font
 import numpy as np
@@ -443,6 +444,12 @@ class SafetyDemoGui():
 
     def event_check(self):
         '''Check if there are any events in the events queue of the UartHandler and process them.'''
+        # Generate random text to check jumping:
+        # random_lenth = randint(30, 200)
+        # import string
+        # random_text = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(random_lenth))
+        # self.label_log.configure(text=random_text)
+
         if self.uart:
             events_to_process = [] # Adding events to the list to avoid changing the list while iterating
             with self.uart.event_mutex:
