@@ -165,10 +165,10 @@ class SafetyDemoGui():
 
         logo_width, logo_height = synopsys_logo_img.size
 
-        x_scale_factor = int(logo_width/4) * int(self.screen_width/1920)
-        y_scale_factor = int(logo_height/4) * int(self.screen_height/1080)
+        self.x_scale_factor = int(self.screen_width/1920)
+        self.y_scale_factor = int(self.screen_height/1080)
 
-        synopsys_logo_img = synopsys_logo_img.resize( (x_scale_factor, y_scale_factor), Image.ANTIALIAS)
+        synopsys_logo_img = synopsys_logo_img.resize( (self.x_scale_factor * int(logo_width/4) , self.y_scale_factor * int(logo_height/4)), Image.ANTIALIAS)
         synopsys_logo_tk = ImageTk.PhotoImage(synopsys_logo_img)
         label1 = tk.CTkLabel(image=synopsys_logo_tk , master=self.frame_left)
         label1.image = synopsys_logo_tk
@@ -178,12 +178,13 @@ class SafetyDemoGui():
         # self.frame_left.grid_columnconfigure(0, weight=1)
         self.label_log = tk.CTkLabel(text="Safety Demo log", master=self.frame_left)
         self.label_log.grid(column= self.far_right_colomn, row=2 , pady=10 , padx=10 , columnspan=2, sticky="n")
+        self.label_log.grid_propagate(0)
 
         # Slider for period
         self.label_period = tk.CTkLabel(text="Period (ms)", master=self.frame_left)
         self.label_period.grid(column= self.far_right_colomn, row=3 , pady=10 , padx=10 , sticky="n")
         self.sms_periodic_value_slider = customtkinter.CTkSlider(master=self.frame_left, from_= 500, to= 700, command=self.periodic_slider_event)
-        self.sms_periodic_value_slider.grid(column=0, row=4, sticky="wes", padx=10, pady=10 , columnspan=1, rowspan=1)
+        self.sms_periodic_value_slider.grid(column=0, row=4, sticky="wes", padx=10, pady=100 , columnspan=1, rowspan=1)
 
 
         # ============ create frame_right grid ============
@@ -674,7 +675,7 @@ class Pattern_Block:
             self.pattern_button = tk.CTkButton(self.window, text = f"{self.pattern_name}",
                                             command = self.run_pattern,
                                             height = self.default_button_height,
-                                            width = 420,
+                                            width = 500,
                                             text_font=self.default_font ,
                                             text_color=self.default_text_color)
             self.pattern_button.grid(column=self.colomn_couter, row= pattern_number + offset , padx = 80, pady= self.pady , sticky="e" , columnspan= 1 )
