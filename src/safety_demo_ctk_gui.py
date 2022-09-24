@@ -143,6 +143,12 @@ class SafetyDemoGui():
         self.frame_left.grid(row=0, column=0, sticky="nswe")
         self.frame_left.grid_propagate(0)
 
+        self.frame_left.grid_rowconfigure(0, minsize=10)   # empty row with minsize as spacing
+        self.frame_left.grid_rowconfigure(5, weight=1)  # empty row as spacing
+        self.frame_left.grid_rowconfigure(8, minsize=20)    # empty row with minsize as spacing
+        self.frame_left.grid_rowconfigure(11, minsize=10)  # empty row with minsize as spacing
+
+
 
         self.window = tk.CTkFrame(master=self.root_window, corner_radius=0)
         self.window.grid(row=0, column=1, sticky="nswe", padx=20, pady=20)
@@ -176,7 +182,7 @@ class SafetyDemoGui():
         label1.grid(column= self.far_right_colomn, row=0 , pady=10 , padx=10 , columnspan=2, rowspan=2, sticky="nw")
         
         # Add logo to the left frame
-        # self.frame_left.grid_columnconfigure(0, weight=1)
+        # self.frame_left.grid_columnconfigure(0, weight=1)wes
         self.label_log = tk.CTkLabel(text="Safety Demo log", master=self.frame_left)
         self.label_log.grid(column= self.far_right_colomn, row=2 , pady=10 , padx=10 , columnspan=2, sticky="n")
         self.label_log.grid_propagate(0)
@@ -185,7 +191,7 @@ class SafetyDemoGui():
         self.label_period = tk.CTkLabel(text="Period (ms)", master=self.frame_left)
         self.label_period.grid(column= self.far_right_colomn, row=3 , pady=10 , padx=10 , sticky="n")
         self.sms_periodic_value_slider = customtkinter.CTkSlider(master=self.frame_left, from_= 500, to= 700, command=self.periodic_slider_event)
-        self.sms_periodic_value_slider.grid(column=0, row=4, sticky="wes", padx=10, pady=100 , columnspan=1, rowspan=1)
+        self.sms_periodic_value_slider.grid(column=0, row=9, sticky="nswe", padx=10, pady=100 , columnspan=1, rowspan=1)
 
 
         # ============ create frame_right grid ============
