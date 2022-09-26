@@ -56,6 +56,13 @@ As of writing this, there are following events that are handled by the `SafetyDe
 * If you are using Windows, you might need to install [this](https://www.silabs.com/developers/usb-to-uart-bridge-vcp-drivers?tab=downloads) driver to make the board work.
 
 
+# TODO
+
+* Delay between sending commands to the board
+* Font size 
+* Synopsys logo
+* Jump
+
 # Regarding serial communication:
 
 Just some links for me:
