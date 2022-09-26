@@ -31,7 +31,7 @@ To see that board was connected all you need is to connect computer USB port wit
 (picture of the port will be here)
 # Archetechture
 
-Source are presented with `safety_demo_ctk_gui.py` with `SafetyDemoGui` class and `uart_handler` with `UartHandler`.
+Source are presented with `safety_demo_ctk_gui.py` with `SafetyDemoGui` class and `uart_handler.py` file with `UartHandler`.
 
 ## Event mechanism
 
@@ -59,9 +59,6 @@ As of writing this, there are following events that are handled by the `SafetyDe
 # TODO
 
 * Delay between sending commands to the board
-* Font size 
-* Synopsys logo
-* Jump
 
 # Regarding serial communication:
 

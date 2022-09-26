@@ -255,15 +255,6 @@ class SafetyDemoGui():
         self.grid_matrix += 1
         
 
- 
-
-        # Add serial status log
-        # self.serial_status_log = tk.CTkTextbox(self.window, height=10, width=30)
-
-
-        # Create patterns buttons
-        # self.pattern_definition = ["Connectivity_check", "BIST", "XLBIST", "Pattern 4", "Pattern 5"]
-
         # test_0_0[] = "all_id_sel                                ";
         # test_0_1[] = "FBIST                                     ";
         # test_0_2[] = "BIST                                      ";
@@ -285,7 +276,7 @@ class SafetyDemoGui():
                                     {"name":"System Clock freq / Duty cycle", "index":4, "reset":True  , "type" : "SMU", "visible" : True },
                                     {"name":"ECC configure"                 , "index":5, "reset":False , "type" : None , "visible" : True },
                                     {"name":"Ecc_test"                      , "index":6, "reset":False , "type" : None , "visible" : False},
-                                    {"name":"ECC Check"                     , "index":7, "reset":False , "type" : None , "visible" : True }
+                                    {"name":"ECC Check"                     , "index":7, "reset":False , "type" : None , "visible" : True },
                                     ]
         self.patterns = []
         for pattern_def in self.pattern_definition_dict:
@@ -302,25 +293,6 @@ class SafetyDemoGui():
                                                 ))
             self.grid_matrix += self.patterns[-1].height
 
-        # self.grid_matrix += len(self.patterns)
-        # for pattern in self.patterns:
-        #     self.grid_matrix += pattern.height
-    
-        # Debug window
-        # self.serial_status_label = tk.CTkLabel(self.window, text = "Serial Status")
-        # self.serial_status_label.grid(column= self.far_right_colomn, row=3, pady=2, padx = 15 , columnspan=2)
-        # # self.grid_matrix += 1
-        # # Create text widget and specify size.
-        # self.serial_status_log = tk.CTkLabel(self.window, height = 400, width = 100)
-        # self.serial_status_log.grid(column= self.far_right_colomn, row=4 , columnspan=5 , pady=2 , padx = 15 , rowspan=10 )
-        # # self.connect_button.pack()
-        # # self.grid_matrix += 1
-
-        # self.change_connection_status_button.pack()
-
-        # self.periodic_add_serial_status()
-        # self.serial_status_label.pack()
-        # self.serial_status_log.pack()
 
         # ==================== Add init process  ====================
 
@@ -332,6 +304,9 @@ class SafetyDemoGui():
         self.periodic_connection_check_init() # Init port check
         self.event_check()
         self.update_gui()
+
+        # ==================== Start GUI ====================
+
         self.root_window.mainloop()
         
 
@@ -391,20 +366,6 @@ class SafetyDemoGui():
         else:
             print("Board not connected")
 
-    def update_picture(self):
-        del(self.label_plot.image)
-        self.time_value += 0.2
-        img_buf = plot_sqare_wave(self.time_value)
-        Y_DIV = 1
-        X_DIV = 1
-        img_buf = img_buf.resize((int(img_buf.size[0]/X_DIV), int(img_buf.size[1]/Y_DIV)), Image.ANTIALIAS)
-        tk_plot = ImageTk.PhotoImage(img_buf)
-        
-        # label_plot = tk.CTkLabel(image=tk_plot , master=self.window)
-        # self.label_plot.image = tk_plot
-        self.label_plot.configure(image=tk_plot)
-        self.label_plot.image = tk_plot
-        self.root_window.after(800, self.update_picture)
         
 
     def periodic_connection_check_init(self):
@@ -742,29 +703,7 @@ class Pattern_Block:
                 self.pattern_result.configure( fg_color = self.color_gradient.get_color() )
             # self.pattern_status.configure(text = f"Last run {last_run} seconds ago" )
 
-def plot_sqare_wave(t):
-    # Create pil buffer
-    img_buf = io.BytesIO()
-    # Create figure
-    fig = plt.figure( figsize=(3,2), dpi=200)
-    # Add x axis label 
-    plt.xlabel('Time (s)')
-    # Add y axis label
-    plt.ylabel('Voltage (V)')
-    # Add title
-    plt.title('Approximate clock and derivation')
-    x = np.linspace(0, 2*np.pi, 100)
-    y = np.sin(x + t)
-    y_ref = np.sin(x)
-    plt.plot(x, y, label='Signal')
-    plt.plot(x, y_ref, label='Reference')
-    plt.legend()
-    # plt.show()
-    plt.savefig(img_buf, format='png')
-    # img_buf.seek(0)
-    return Image.open(img_buf)
         
-
 
 if __name__ == '__main__':
     safety_gui = SafetyDemoGui()
