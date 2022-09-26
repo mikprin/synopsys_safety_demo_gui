@@ -2,6 +2,7 @@
 from email.policy import default
 from random import random
 from random import randint
+import random
 import tkinter
 from tkinter import font
 import numpy as np
@@ -70,6 +71,7 @@ class SafetyDemoGui():
                     "VALUE_UPDATE":"" }
 
     top_button_height = 50
+    frequency_multiplier = 5
     SMU_values = {"smu_0":0, "smu_1":0 , "freq":0 , "duty_cycle":0 , "known_frequency":  6.25e6 }
 
     def __init__(self):
@@ -104,7 +106,8 @@ class SafetyDemoGui():
 
             if self.config.get("GUI", "default_font_size"):
                 self.default_font = ("Arial", int(self.config.get("GUI", "default_font_size")) )
-                
+            if self.config.get("GUI", "frequency_multiplier"):
+                self.frequency_multiplier = self.config.get("GUI", "frequency_multiplier")
             color = self.config.get("GUI", "default_text_color")
             if color:
                 if color == "yellow":
@@ -142,33 +145,55 @@ class SafetyDemoGui():
         self.frame_left.grid(row=0, column=0, sticky="nswe")
         self.frame_left.grid_propagate(0)
 
+        self.frame_left.grid_rowconfigure(0, minsize=10)   # empty row with minsize as spacing
+        self.frame_left.grid_rowconfigure(5, weight=1)  # empty row as spacing
+        self.frame_left.grid_rowconfigure(8, minsize=20)    # empty row with minsize as spacing
+        self.frame_left.grid_rowconfigure(11, minsize=10)  # empty row with minsize as spacing
+
+
 
         self.window = tk.CTkFrame(master=self.root_window, corner_radius=0)
         self.window.grid(row=0, column=1, sticky="nswe", padx=20, pady=20)
   
+        #Get the current screen width and height
+        self.screen_width = self.window.winfo_screenwidth()
+        self.screen_height = self.window.winfo_screenheight()
+
+        print("Screen width: ", self.screen_width)
+        print("Screen height: ", self.screen_height)
+        
+
+
         # ============ create left frame  ============
 
         # Synopsys logo image
         
         synopsys_logo_img = Image.open( os.path.join ( self.this_file_path, "..", "img" , "Synopsys_Logo.png")) # USE ABSOLUTE PATH TODO
         
+        
+
         logo_width, logo_height = synopsys_logo_img.size
-        synopsys_logo_img = synopsys_logo_img.resize((int(logo_width/4), int(logo_height/4)), Image.ANTIALIAS)
+
+        self.x_scale_factor = int(self.screen_width/1920)
+        self.y_scale_factor = int(self.screen_height/1080)
+
+        synopsys_logo_img = synopsys_logo_img.resize( (self.x_scale_factor * int(logo_width/4) , self.y_scale_factor * int(logo_height/4)), Image.ANTIALIAS)
         synopsys_logo_tk = ImageTk.PhotoImage(synopsys_logo_img)
         label1 = tk.CTkLabel(image=synopsys_logo_tk , master=self.frame_left)
         label1.image = synopsys_logo_tk
         label1.grid(column= self.far_right_colomn, row=0 , pady=10 , padx=10 , columnspan=2, rowspan=2, sticky="nw")
         
         # Add logo to the left frame
-        # self.frame_left.grid_columnconfigure(0, weight=1)
+        # self.frame_left.grid_columnconfigure(0, weight=1)wes
         self.label_log = tk.CTkLabel(text="Safety Demo log", master=self.frame_left)
         self.label_log.grid(column= self.far_right_colomn, row=2 , pady=10 , padx=10 , columnspan=2, sticky="n")
+        self.label_log.grid_propagate(0)
 
         # Slider for period
         self.label_period = tk.CTkLabel(text="Period (ms)", master=self.frame_left)
         self.label_period.grid(column= self.far_right_colomn, row=3 , pady=10 , padx=10 , sticky="n")
         self.sms_periodic_value_slider = customtkinter.CTkSlider(master=self.frame_left, from_= 500, to= 700, command=self.periodic_slider_event)
-        self.sms_periodic_value_slider.grid(column=0, row=4, sticky="s", padx=10, pady=10 , columnspan=1, rowspan=1)
+        self.sms_periodic_value_slider.grid(column=0, row=9, sticky="nswe", padx=10, pady=100 , columnspan=1, rowspan=1)
 
 
         # ============ create frame_right grid ============
@@ -427,6 +452,12 @@ class SafetyDemoGui():
 
     def event_check(self):
         '''Check if there are any events in the events queue of the UartHandler and process them.'''
+        # Generate random text to check jumping:
+        # random_lenth = randint(30, 200)
+        # import string
+        # random_text = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(random_lenth))
+        # self.label_log.configure(text=random_text)
+
         if self.uart:
             events_to_process = [] # Adding events to the list to avoid changing the list while iterating
             with self.uart.event_mutex:
@@ -448,7 +479,7 @@ class SafetyDemoGui():
 
                                 #process_values!
                                 if self.use_true_smu_values:
-                                    self.SMU_values["freq"] = (int(self.SMU_values["smu_0"])/int(self.SMU_values["smu_1"])) * self.SMU_values["known_frequency"]
+                                    self.SMU_values["freq"] = (int(self.SMU_values["smu_0"])/int(self.SMU_values["smu_1"])) * self.SMU_values["known_frequency"] * self.frequency_multiplier
                                     self.SMU_values["duty_cycle"] = 50 + randint(-10,10)/1000
                                 else:
                                     self.SMU_values["freq"] = 20 + random.randint(-10,10)/100
@@ -659,7 +690,7 @@ class Pattern_Block:
             self.pattern_button = tk.CTkButton(self.window, text = f"{self.pattern_name}",
                                             command = self.run_pattern,
                                             height = self.default_button_height,
-                                            width = 420,
+                                            width = 500,
                                             text_font=self.default_font ,
                                             text_color=self.default_text_color)
             self.pattern_button.grid(column=self.colomn_couter, row= pattern_number + offset , padx = 80, pady= self.pady , sticky="e" , columnspan= 1 )
