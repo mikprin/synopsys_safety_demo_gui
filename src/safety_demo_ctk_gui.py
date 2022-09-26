@@ -479,7 +479,10 @@ class SafetyDemoGui():
 
                                 #process_values!
                                 if self.use_true_smu_values:
-                                    self.SMU_values["freq"] = (int(self.SMU_values["smu_0"])/int(self.SMU_values["smu_1"])) * int(self.SMU_values["known_frequency"]) * int(self.frequency_multiplier)
+                                    if int(self.SMU_values["smu_1"]) != 0:
+                                        self.SMU_values["freq"] = (int(self.SMU_values["smu_0"])/int(self.SMU_values["smu_1"])) * int(self.SMU_values["known_frequency"]) * int(self.frequency_multiplier)
+                                    else:
+                                        self.SMU_values["freq"] = 0
                                     self.SMU_values["duty_cycle"] = 50 + randint(-10,10)/1000
                                 else:
                                     self.SMU_values["freq"] = 20 + random.randint(-10,10)/100
