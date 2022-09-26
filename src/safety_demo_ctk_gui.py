@@ -71,7 +71,7 @@ class SafetyDemoGui():
                     "VALUE_UPDATE":"" }
 
     top_button_height = 50
-    frequency_multiplyer = 5
+    frequency_multiplier = 5
     SMU_values = {"smu_0":0, "smu_1":0 , "freq":0 , "duty_cycle":0 , "known_frequency":  6.25e6 }
 
     def __init__(self):
@@ -106,8 +106,8 @@ class SafetyDemoGui():
 
             if self.config.get("GUI", "default_font_size"):
                 self.default_font = ("Arial", int(self.config.get("GUI", "default_font_size")) )
-            if self.config.get("GUI", "frequency_multiplyer"):
-                self.frequency_multiplyer = self.config.get("GUI", "frequency_multiplyer")
+            if self.config.get("GUI", "frequency_multiplier"):
+                self.frequency_multiplier = self.config.get("GUI", "frequency_multiplier")
             color = self.config.get("GUI", "default_text_color")
             if color:
                 if color == "yellow":
@@ -479,7 +479,7 @@ class SafetyDemoGui():
 
                                 #process_values!
                                 if self.use_true_smu_values:
-                                    self.SMU_values["freq"] = (int(self.SMU_values["smu_0"])/int(self.SMU_values["smu_1"])) * self.SMU_values["known_frequency"] * self.frequency_multiplyer
+                                    self.SMU_values["freq"] = (int(self.SMU_values["smu_0"])/int(self.SMU_values["smu_1"])) * self.SMU_values["known_frequency"] * self.frequency_multiplier
                                     self.SMU_values["duty_cycle"] = 50 + randint(-10,10)/1000
                                 else:
                                     self.SMU_values["freq"] = 20 + random.randint(-10,10)/100
