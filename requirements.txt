@@ -1,7 +1,7 @@
-apscheduler # Sceduler
+apscheduler==3.10.4 # Sceduler
 tk # GUI
-numpy # Data
-customtkinter # Better gui wrapper
-pyserial # Serial communication
-pillow # Image processing
+numpy==1.26.0 # Data
+customtkinter==4.6.3 # Better gui wrapper
+pyserial==3.5 # Serial communication
+pillow==9.5.0 # Image processing
 matplotlib # Plotting
